@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>통합 대시보드</title>
+<meta name="description" content="수학·물리·기상학·어학·자격증 진행 상황">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%232f6fed'/><path d='M8 19c3-6 13-6 16 0' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#0d1117; --ink-2:#4b5563; --ink-3:#8b93a1;
+  --line:#e6e8ec; --line-2:#f0f1f4; --accent:#2f6fed; --accent-soft:#e8f0ff;
+  --ok:#14915f; --warn:#c27c0e; --bad:#d6453d; --track:#eef0f3;
+  --a-수학:#2f6fed; --a-물리:#7a5af8; --a-기상학:#0e9384; --a-기상훈련:#0ba5ec;
+  --a-어학:#ee46bc; --a-자격증:#f79009; --a-학교:#667085; --a-체력:#e04f16; --a-개발:#475467;
+  --r:14px; --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0b0d10; --panel:#13161b; --ink:#eef1f5; --ink-2:#a8b0bd; --ink-3:#6b7380;
+  --line:#22262d; --line-2:#1a1d23; --accent:#6c9bff; --accent-soft:#17233d; --track:#22262d;
+  --ok:#3ccb8f; --warn:#f0b445; --bad:#ff7b72; --shadow:none;
+}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Pretendard Variable",Pretendard,system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum";line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 24px 64px}
+@media (max-width:640px){.wrap{padding:24px 16px 48px}}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--ink-3);font-size:14px;margin-top:4px}
+.sync{font-size:13px;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block}
+.grid{display:grid;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:15px;font-weight:650;letter-spacing:-.01em;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.card h2 small{font-size:12px;font-weight:500;color:var(--ink-3)}
+.note{color:var(--ink-3);font-size:13px;margin-top:2px}
+section{margin-top:16px}
+
+/* hero */
+.top{grid-template-columns:1.35fr 1fr}
+@media (max-width:860px){.top{grid-template-columns:1fr}}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--accent) 0%,#5b8cff 100%);color:#fff;border:0}
+@media (prefers-color-scheme:dark){.hero{background:linear-gradient(135deg,#1d3b8a,#2a4fb0)}}
+.hero .lbl{font-size:13px;opacity:.8;font-weight:500}
+.hero .dd{font-size:64px;font-weight:750;letter-spacing:-.04em;line-height:1;margin:14px 0 10px}
+.hero .nm{font-size:19px;font-weight:650;letter-spacing:-.01em}
+.hero .cr{font-size:14px;opacity:.85;margin-top:6px}
+.hero .date{position:absolute;top:22px;right:22px;font-size:13px;opacity:.8}
+.hero svg{position:absolute;right:-30px;bottom:-40px;opacity:.14}
+.stats{grid-template-columns:1fr 1fr}
+.stat .k{font-size:13px;color:var(--ink-2);font-weight:500}
+.stat .v{font-size:34px;font-weight:700;letter-spacing:-.03em;margin-top:6px;line-height:1.1}
+.stat .v span{font-size:15px;font-weight:550;color:var(--ink-3);margin-left:3px}
+.stat .s{font-size:12px;color:var(--ink-3);margin-top:4px}
+
+/* layouts */
+.two{grid-template-columns:1fr 1fr}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+
+/* upcoming */
+.up{list-style:none;padding:0;margin-top:14px}
+.up li{display:grid;grid-template-columns:54px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line-2)}
+.up li:first-child{border-top:0}
+.cal{border:1px solid var(--line);border-radius:10px;text-align:center;padding:4px 0;line-height:1.15}
+.cal b{display:block;font-size:18px;font-weight:700}
+.cal i{font-style:normal;font-size:11px;color:var(--ink-3)}
+.up .t{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.up .c{font-size:12.5px;color:var(--ink-3);margin-top:1px}
+.pill{font-size:12px;font-weight:650;padding:4px 9px;border-radius:999px;background:var(--line-2);color:var(--ink-2);white-space:nowrap}
+.pill.hot{background:#fee4e2;color:#b42318}
+.pill.soon{background:#fef0c7;color:#93370d}
+@media (prefers-color-scheme:dark){.pill.hot{background:#3b1714;color:#ff9c94}.pill.soon{background:#3a2a0b;color:#f6c362}}
+
+/* active */
+.active{grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));margin-top:14px;gap:12px}
+.pc{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+.pc:hover{border-color:var(--accent);transform:translateY(-1px)}
+.pc .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--ink-2)}
+.tag::before{content:"";width:8px;height:8px;border-radius:3px;background:var(--c,var(--ink-3))}
+.pc .nm{font-size:15.5px;font-weight:650;letter-spacing:-.01em}
+.pc .nx{font-size:13px;color:var(--ink-2);background:var(--line-2);border-radius:8px;padding:8px 10px}
+.pc .nx b{font-weight:600;color:var(--ink-3);font-size:11.5px;display:block;margin-bottom:1px}
+.bar{height:6px;border-radius:99px;background:var(--track);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--c,var(--accent));transition:width .6s cubic-bezier(.2,.7,.2,1)}
+.meta{font-size:12px;color:var(--ink-3);display:flex;justify-content:space-between}
+
+/* wx */
+.wx{list-style:none;padding:0;margin-top:16px;display:grid;gap:16px}
+.wx .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.wx .n{font-size:14px;font-weight:600}
+.wx .q{font-size:14px;font-weight:650}
+.wx .q span{color:var(--ink-3);font-weight:500}
+.wx .s{font-size:12px;color:var(--ink-3);margin-top:5px}
+
+/* chart */
+.chart{margin-top:14px;position:relative;min-height:190px}
+.chart svg{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);white-space:nowrap;opacity:0;transition:opacity .1s}
+.empty{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--ink-3);font-size:13px;min-height:160px;border:1px dashed var(--line);border-radius:10px;padding:16px}
+
+/* all projects */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.chip{font:inherit;font-size:12.5px;font-weight:550;border:1px solid var(--line);background:transparent;color:var(--ink-2);padding:5px 11px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px}
+.tbl th{font-size:12px;font-weight:550;color:var(--ink-3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl td{padding:11px 10px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl a{color:inherit;text-decoration:none;font-weight:600}
+.tbl a:hover{color:var(--accent)}
+.tbl .pg{width:160px}
+.tbl .pg .meta{margin-top:4px}
+.st{font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.st.진행중{background:var(--accent-soft);color:var(--accent)}
+.st.예정{background:var(--line-2);color:var(--ink-2)}
+.st.보류{background:transparent;color:var(--ink-3);border:1px solid var(--line)}
+.st.완료{background:#dcfae6;color:#067647}
+@media (max-width:720px){.tbl .hide{display:none}.tbl .pg{width:110px}.tbl{min-width:540px}.tbl td:first-child{min-width:150px}}
+
+/* roadmap */
+.road{display:flex;gap:0;overflow-x:auto;margin-top:16px;padding-bottom:6px;scrollbar-width:thin}
+.mo{flex:0 0 150px;border-left:1px solid var(--line);padding:0 12px 4px}
+.mo:first-child{border-left:0;padding-left:0}
+.mo h3{font-size:12px;font-weight:600;color:var(--ink-3);margin-bottom:10px}
+.mo.now h3{color:var(--accent)}
+.ms{font-size:12.5px;line-height:1.35;padding:7px 9px;border-radius:8px;background:var(--line-2);margin-bottom:6px;border-left:3px solid var(--c,var(--ink-3))}
+.ms b{display:block;font-size:11px;font-weight:600;color:var(--ink-3)}
+
+/* logs */
+.logs{list-style:none;padding:0;margin-top:12px}
+.logs li{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line-2);font-size:13.5px}
+.logs li:first-child{border-top:0}
+.logs .d{color:var(--ink-3);font-size:12px;width:44px;flex:none}
+.logs .x{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logs .r{color:var(--ink-2);font-size:12.5px;white-space:nowrap}
+footer{margin-top:32px;color:var(--ink-3);font-size:12.5px;text-align:center}
+footer a{color:inherit}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>통합 대시보드</h1>
+      <div class="sub" id="today">—</div>
+    </div>
+    <div class="sync"><span class="dot"></span><span id="sync">—</span></div>
+  </header>
+
+  <div class="grid top">
+    <div class="card hero" id="hero">
+      <div class="lbl">다음 관문</div>
+      <div class="date" id="h-date"></div>
+      <div class="dd" id="h-dd">—</div>
+      <div class="nm" id="h-nm"></div>
+      <div class="cr" id="h-cr"></div>
+      <svg width="260" height="200" viewBox="0 0 260 200" fill="none" aria-hidden="true"><path d="M20 150c40-90 180-90 220 0" stroke="#fff" stroke-width="18" stroke-linecap="round"/><path d="M60 150c25-50 115-50 140 0" stroke="#fff" stroke-width="18" stroke-linecap="round"/></svg>
+    </div>
+    <div class="grid stats">
+      <div class="card stat"><div class="k">이번 주 공부</div><div class="v" id="s-week">—</div><div class="s" id="s-week2"></div></div>
+      <div class="card stat"><div class="k">오늘</div><div class="v" id="s-today">—</div><div class="s" id="s-today2"></div></div>
+      <div class="card stat"><div class="k">진행 중</div><div class="v" id="s-active">—</div><div class="s" id="s-active2"></div></div>
+      <div class="card stat"><div class="k">기상 훈련 누적</div><div class="v" id="s-wx">—</div><div class="s">TAF·METAR·일기도·Skew-T·구름</div></div>
+    </div>
+  </div>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>다가오는 관문 <small>45일 이내</small></h2>
+      <ul class="up" id="upcoming"></ul>
+    </div>
+    <div class="card">
+      <h2>기상 훈련 <small>누적 / 목표</small></h2>
+      <ul class="wx" id="wx"></ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>진행 중 <small id="active-n"></small></h2>
+    <div class="grid active" id="active"></div>
+  </section>
+
+  <section class="card">
+    <h2>공부 시간 <small>최근 28일 · 시간</small></h2>
+    <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+  </section>
+
+  <section class="card">
+    <h2>전체 프로젝트 <small id="all-n"></small></h2>
+    <div class="chips" id="chips"></div>
+    <div style="overflow-x:auto"><table class="tbl" id="tbl">
+      <thead><tr><th>이름</th><th class="hide">영역</th><th>상태</th><th class="pg">진행</th><th>마감</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section class="card">
+    <h2>로드맵 <small>마일스톤</small></h2>
+    <div class="road" id="road"></div>
+  </section>
+
+  <section class="card">
+    <h2>최근 기록 <small>노션 「기록」</small></h2>
+    <ul class="logs" id="logs"></ul>
+  </section>
+
+  <footer>입력은 노션에서 · 매시간 자동 갱신</footer>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "style") e.style.cssText = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v);
+  }
+  kids.flat().forEach((k) => k != null && e.append(k));
+  return e;
+};
+const AREA = { "수학":"--a-수학","물리":"--a-물리","기상학":"--a-기상학","기상 훈련":"--a-기상훈련","어학":"--a-어학","자격증":"--a-자격증","학교":"--a-학교","체력":"--a-체력","개발":"--a-개발" };
+const areaVar = (a) => `var(${AREA[a] || "--ink-3"})`;
+const DOW = ["일","월","화","수","목","금","토"];
+
+// KST 기준 날짜
+const kstToday = () => { const d = new Date(Date.now() + 9 * 3600e3); return d.toISOString().slice(0, 10); };
+const days = (iso) => Math.round((Date.parse(iso) - Date.parse(kstToday())) / 864e5);
+const ddLabel = (n) => n > 0 ? `D-${n}` : n === 0 ? "D-DAY" : `D+${-n}`;
+const md = (iso) => { const [, m, d] = iso.split("-"); return `${+m}/${+d}`; };
+const fmtH = (min) => (Math.round(min / 6) / 10).toLocaleString("ko-KR");
+
+fetch("data.json?" + Date.now()).then((r) => r.json()).then(render).catch(() => {
+  $("#sync").textContent = "데이터를 불러오지 못했어요";
+});
+
+function render(D) {
+  const today = kstToday();
+  const t = new Date(today);
+  $("#today").textContent = `${t.getUTCFullYear()}년 ${t.getUTCMonth() + 1}월 ${t.getUTCDate()}일 ${DOW[t.getUTCDay()]}요일`;
+  const up = new Date(D.updated);
+  $("#sync").textContent = "노션 동기화 " + up.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const P = D.projects, L = D.logs || [], M = D.milestones || [];
+  const byId = Object.fromEntries(P.map((p) => [p.id, p]));
+  // 프로젝트별 집계
+  for (const p of P) { p.qty = 0; p.min = 0; p.score = null; p.scoreAt = ""; p.days = new Set(); }
+  for (const l of L) for (const id of l.projects || []) {
+    const p = byId[id]; if (!p) continue;
+    p.qty += l.qty || 0; p.min += l.minutes || 0;
+    if (l.date) p.days.add(l.date);
+    if (l.score != null && (l.date || "") >= p.scoreAt) { p.score = l.score; p.scoreAt = l.date || ""; }
+  }
+  const prog = (p) => p.target > 0 ? Math.min(p.qty / p.target, 1) : null;
+
+  // 히어로: 다음 관문
+  const open = M.filter((m) => !m.done && m.date && m.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  const nx = open[0];
+  if (nx) {
+    $("#h-dd").textContent = ddLabel(days(nx.date));
+    $("#h-nm").textContent = nx.name;
+    $("#h-cr").textContent = nx.criteria || "";
+    const d = new Date(nx.date);
+    $("#h-date").textContent = `${md(nx.date)} (${DOW[d.getUTCDay()]})`;
+  } else { $("#h-dd").textContent = "—"; $("#h-nm").textContent = "남은 관문이 없어요"; }
+
+  // 통계
+  const dow = (t.getUTCDay() + 6) % 7; // 월=0
+  const mon = new Date(t - dow * 864e5).toISOString().slice(0, 10);
+  const lastMon = new Date(t - (dow + 7) * 864e5).toISOString().slice(0, 10);
+  const sum = (arr) => arr.reduce((s, l) => s + (l.minutes || 0), 0);
+  const wk = sum(L.filter((l) => l.date >= mon && l.date <= today));
+  const pw = sum(L.filter((l) => l.date >= lastMon && l.date < mon));
+  const td = L.filter((l) => l.date === today);
+  $("#s-week").innerHTML = ""; $("#s-week").append(fmtH(wk), el("span", { text: "h" }));
+  const diff = wk - pw;
+  $("#s-week2").textContent = pw ? `지난주보다 ${diff >= 0 ? "+" : "−"}${fmtH(Math.abs(diff))}h` : "월요일부터 누적";
+  $("#s-today").innerHTML = ""; $("#s-today").append(String(sum(td)), el("span", { text: "분" }));
+  $("#s-today2").textContent = td.length ? `기록 ${td.length}건` : "아직 기록 없음";
+  const act = P.filter((p) => p.status === "진행 중");
+  $("#s-active").innerHTML = ""; $("#s-active").append(String(act.length), el("span", { text: "개" }));
+  $("#s-active2").textContent = `전체 ${P.length}개 중`;
+  const wxTotal = L.filter((l) => l.wx).reduce((s, l) => s + (l.qty || 1), 0);
+  $("#s-wx").innerHTML = ""; $("#s-wx").append(wxTotal.toLocaleString("ko-KR"), el("span", { text: "건" }));
+
+  // 다가오는 관문
+  const lim = new Date(t.getTime() + 45 * 864e5).toISOString().slice(0, 10);
+  const ul = $("#upcoming"); ul.replaceChildren();
+  const soon = open.filter((m) => m.date <= lim);
+  if (!soon.length) ul.append(el("li", { class: "note", text: "45일 안에 잡힌 관문이 없어요" }));
+  for (const m of soon.slice(0, 7)) {
+    const n = days(m.date), d = new Date(m.date);
+    const proj = (m.projects || []).map((id) => byId[id]?.name).filter(Boolean).join(" · ");
+    ul.append(el("li", {},
+      el("div", { class: "cal" }, el("b", { text: String(d.getUTCDate()) }), el("i", { text: `${d.getUTCMonth() + 1}월 ${DOW[d.getUTCDay()]}` })),
+      el("div", {}, el("div", { class: "t", text: m.name }), el("div", { class: "c", text: m.criteria || proj })),
+      el("span", { class: "pill" + (n <= 3 ? " hot" : n <= 14 ? " soon" : ""), text: ddLabel(n) })));
+  }
+
+  // 기상 훈련
+  const WX = [["TAF", "섀도 TAF"], ["METAR", "직접 관측 METAR"], ["지상일기도", "지상일기도 손 분석"], ["Skew-T", "Skew-T 사례"], ["구름", "구름 사진"]];
+  const wxUl = $("#wx"); wxUl.replaceChildren();
+  const weekAgo = new Date(t - 6 * 864e5).toISOString().slice(0, 10);
+  for (const [key, pname] of WX) {
+    const p = P.find((x) => x.name === pname);
+    const logs = L.filter((l) => l.wx === key);
+    const n = logs.reduce((s, l) => s + (l.qty || 1), 0);
+    const goal = p?.target || 0;
+    const w = logs.filter((l) => l.date >= weekAgo).reduce((s, l) => s + (l.qty || 1), 0);
+    const hits = logs.filter((l) => l.hit === true).length;
+    const s = [`최근 7일 ${w}`];
+    if ((key === "TAF" || key === "METAR") && logs.length) s.push(`적중 ${Math.round(hits / logs.length * 100)}%`);
+    if (key === "구름") s.push(`${new Set(logs.map((l) => l.cloud).filter(Boolean)).size}/10종`);
+    if (w && goal > n) s.push(`이 속도면 ${Math.ceil((goal - n) / w)}주 남음`);
+    wxUl.append(el("li", { style: `--c:var(--a-기상훈련)` },
+      el("div", { class: "row" }, el("span", { class: "n", text: key === "지상일기도" ? "지상일기도 손 분석" : key }),
+        el("span", { class: "q" }, String(n), el("span", { text: ` / ${goal}` }))),
+      el("div", { class: "bar" }, el("i", { style: `width:${goal ? Math.min(n / goal, 1) * 100 : 0}%` })),
+      el("div", { class: "s", text: s.join(" · ") })));
+  }
+
+  // 진행 중 카드
+  const box = $("#active"); box.replaceChildren();
+  const prRank = { "높음": 0, "보통": 1, "낮음": 2 };
+  act.sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999") || prRank[a.priority] - prRank[b.priority]);
+  $("#active-n").textContent = `${act.length}개`;
+  for (const p of act) box.append(card(p));
+
+  function card(p) {
+    const c = el("a", { class: "pc", href: p.url || "#", target: "_blank", rel: "noopener", style: `--c:${areaVar(p.area)}` });
+    c.append(el("div", { class: "row" }, el("span", { class: "tag", text: p.area }),
+      p.due ? el("span", { class: "pill" + (days(p.due) <= 3 ? " hot" : days(p.due) <= 14 ? " soon" : ""), text: ddLabel(days(p.due)) }) : null));
+    c.append(el("div", { class: "nm", text: p.name }));
+    const pr = prog(p);
+    if (pr != null) {
+      c.append(el("div", { class: "bar" }, el("i", { style: `width:${pr * 100}%` })));
+      c.append(el("div", { class: "meta" }, el("span", { text: `${p.qty} / ${p.target} ${(p.unit || "").split(" ")[0]}` }), el("span", { text: `${Math.round(pr * 100)}%` })));
+    } else if (p.measure === "점수형") {
+      c.append(el("div", { class: "meta" }, el("span", { text: p.score != null ? `최근 ${p.score}점` : "점수 기록 없음" }), el("span", { text: p.min ? `${fmtH(p.min)}h` : "" })));
+    } else if (p.min) {
+      c.append(el("div", { class: "meta" }, el("span", { text: `누적 ${fmtH(p.min)}h` }), el("span", { text: `${p.days.size}일` })));
+    }
+    if (p.next) c.append(el("div", { class: "nx" }, el("b", { text: "다음 할 일" }), p.next));
+    return c;
+  }
+
+  // 공부 시간 차트 (최근 28일)
+  drawChart(L, t);
+  window.addEventListener("resize", () => drawChart(L, t));
+
+  // 전체 프로젝트
+  const areas = [...new Set(P.map((p) => p.area))];
+  let cur = "전체";
+  const chips = $("#chips"); chips.replaceChildren();
+  for (const a of ["전체", ...areas]) {
+    const b = el("button", { class: "chip", "aria-pressed": String(a === cur), text: a });
+    b.onclick = () => { cur = a; chips.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", String(x.textContent === a))); table(); };
+    chips.append(b);
+  }
+  const stRank = { "진행 중": 0, "예정": 1, "보류": 2, "완료": 3 };
+  function table() {
+    const rows = P.filter((p) => cur === "전체" || p.area === cur)
+      .sort((a, b) => stRank[a.status] - stRank[b.status] || (a.due || "9999").localeCompare(b.due || "9999"));
+    $("#all-n").textContent = `${rows.length}개`;
+    const tb = $("#tbl tbody"); tb.replaceChildren();
+    for (const p of rows) {
+      const pr = prog(p);
+      tb.append(el("tr", { style: `--c:${areaVar(p.area)}` },
+        el("td", {}, el("a", { href: p.url || "#", target: "_blank", rel: "noopener", text: p.name })),
+        el("td", { class: "hide" }, el("span", { class: "tag", text: p.area })),
+        el("td", {}, el("span", { class: "st " + (p.status || "").replace(" ", ""), text: p.status })),
+        el("td", { class: "pg" }, pr != null ? [el("div", { class: "bar" }, el("i", { style: `width:${pr * 100}%` })), el("div", { class: "meta" }, el("span", { text: `${p.qty}/${p.target}` }), el("span", { text: `${Math.round(pr * 100)}%` }))] : el("span", { class: "note", text: p.measure })),
+        el("td", { style: "white-space:nowrap;color:var(--ink-2);font-size:12.5px" }, p.due ? `${md(p.due)} · ${ddLabel(days(p.due))}` : "—")));
+    }
+  }
+  table();
+
+  // 로드맵
+  const road = $("#road"); road.replaceChildren();
+  const ms = M.filter((m) => m.date).sort((a, b) => a.date.localeCompare(b.date));
+  const months = [];
+  let y = t.getUTCFullYear(), mo = t.getUTCMonth();
+  const last = ms.length ? ms[ms.length - 1].date.slice(0, 7) : "";
+  while (`${y}-${String(mo + 1).padStart(2, "0")}` <= last || months.length < 6) {
+    months.push(`${y}-${String(mo + 1).padStart(2, "0")}`); mo++; if (mo > 11) { mo = 0; y++; }
+    if (months.length > 36) break;
+  }
+  for (const k of months) {
+    const col = el("div", { class: "mo" + (k === today.slice(0, 7) ? " now" : "") },
+      el("h3", { text: `${k.slice(2, 4)}년 ${+k.slice(5)}월` }));
+    for (const m of ms.filter((x) => x.date.startsWith(k))) {
+      const a = byId[(m.projects || [])[0]]?.area;
+      col.append(el("div", { class: "ms", style: `--c:${areaVar(a)};${m.done ? "opacity:.5;text-decoration:line-through" : ""}` },
+        el("b", { text: md(m.date) }), m.name));
+    }
+    road.append(col);
+  }
+
+  // 최근 기록
+  const lg = $("#logs"); lg.replaceChildren();
+  const recent = [...L].filter((l) => l.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+  if (!recent.length) lg.append(el("li", {}, el("div", { class: "empty", style: "width:100%;min-height:90px", text: "노션 「기록」에 첫 기록을 남기면 여기에 쌓여요" })));
+  for (const l of recent) {
+    const p = byId[(l.projects || [])[0]];
+    const r = [l.minutes ? `${l.minutes}분` : null, l.qty ? `${l.qty}${p?.unit ? " " + p.unit.split(" ")[0] : ""}` : null, l.score != null ? `${l.score}점` : null].filter(Boolean).join(" · ");
+    lg.append(el("li", { style: `--c:${areaVar(p?.area)}` },
+      el("span", { class: "d", text: md(l.date) }),
+      el("span", { class: "x" }, el("span", { class: "tag", style: "margin-right:8px", text: p?.name || l.wx || "" }), l.title || ""),
+      el("span", { class: "r", text: r })));
+  }
+}
+
+function drawChart(L, t) {
+  const box = $("#chart"), tip = $("#tip");
+  box.querySelectorAll("svg,.empty").forEach((n) => n.remove());
+  const N = 28, keys = [];
+  for (let i = N - 1; i >= 0; i--) keys.push(new Date(t - i * 864e5).toISOString().slice(0, 10));
+  const m = Object.fromEntries(keys.map((k) => [k, 0]));
+  for (const l of L) if (l.date in m) m[l.date] += l.minutes || 0;
+  const vals = keys.map((k) => m[k] / 60);
+  if (!vals.some((v) => v > 0)) { box.prepend(el("div", { class: "empty", text: "노션 「기록」에 시간(분)을 적으면 하루 공부 시간이 막대로 그려져요" })); return; }
+  const W = Math.max(box.clientWidth, 280), H = 190, ml = 28, mr = 6, mt = 10, mb = 24;
+  const max = Math.max(2, Math.ceil(Math.max(...vals)));
+  const iw = W - ml - mr, ih = H - mt - mb, bw = iw / N;
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", "100%");
+  const add = (tag, a) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); svg.append(e); return e; };
+  const step = max <= 4 ? 1 : max <= 8 ? 2 : 4;
+  for (let v = 0; v <= max; v += step) {
+    const yy = mt + ih - (v / max) * ih;
+    add("line", { x1: ml, x2: W - mr, y1: yy, y2: yy, stroke: "var(--line)", "stroke-width": 1 });
+    add("text", { x: ml - 8, y: yy + 4, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)" }).textContent = v;
+  }
+  const todayKey = keys[N - 1];
+  keys.forEach((k, i) => {
+    const v = vals[i], h = (v / max) * ih, x = ml + i * bw + bw * 0.18, w = Math.min(bw * 0.64, 22);
+    const r = add("rect", { x, y: mt + ih - h, width: w, height: Math.max(h, v ? 2 : 0), rx: 4, fill: k === todayKey ? "var(--accent)" : "color-mix(in srgb, var(--accent) 45%, transparent)" });
+    const hit = add("rect", { x: ml + i * bw, y: mt, width: bw, height: ih, fill: "transparent" });
+    hit.addEventListener("mouseenter", () => {
+      const d = new Date(k);
+      tip.textContent = `${d.getUTCMonth() + 1}/${d.getUTCDate()} (${DOW[d.getUTCDay()]}) · ${v.toFixed(1)}시간`;
+      tip.style.opacity = 1;
+      const sx = box.clientWidth / W, tx = (x + w / 2) * sx - tip.offsetWidth / 2;
+      tip.style.left = Math.max(0, Math.min(tx, box.clientWidth - tip.offsetWidth)) + "px";
+      tip.style.top = Math.max(0, (mt + ih - h) * sx - 34) + "px";
+    });
+    hit.addEventListener("mouseleave", () => (tip.style.opacity = 0));
+    if (new Date(k).getUTCDay() === 1 || i === N - 1)
+      add("text", { x: ml + i * bw + bw / 2, y: H - 6, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)" }).textContent = i === N - 1 ? "오늘" : md(k);
+  });
+  box.prepend(svg);
+}
+</script>
+</body>
+</html>
