@@ -74,7 +74,7 @@ const data = {
       title: "한 일", date: "날짜", projects: "프로젝트", minutes: "시간(분)", qty: "수량",
       score: "점수", memo: "메모", wx: "기상 종류", station: "지점", hit: "적중",
       cause: "틀린 원인", cloud: "구름 종류", mine: "내 값", official: "공식 값",
-      solved: "문제 수", correct: "맞은 수", start: "시작", end: "끝", check: "판독 확인 필요",
+      solved: "문제 수", correct: "맞은 수", start: "시작", end: "끝", check: "판독 확인 필요", deep: "심층",
     }),
   })),
   milestones: m.map((x) => ({

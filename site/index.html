@@ -327,11 +327,17 @@ function render(D) {
   for (const [key, pname] of WX) {
     const p = P.find((x) => x.name === pname);
     const logs = L.filter((l) => l.wx === key);
-    const n = logs.reduce((s, l) => s + (l.qty || 1), 0);
+    const all = logs.reduce((s, l) => s + (l.qty || 1), 0);
+    // 섀도 TAF 목표는 심층 분석 개수 기준
+    const n = key === "TAF" ? logs.filter((l) => l.deep).reduce((s, l) => s + (l.qty || 1), 0) : all;
     const goal = p?.target || 0;
     const w = logs.filter((l) => l.date >= weekAgo).reduce((s, l) => s + (l.qty || 1), 0);
     const hits = logs.filter((l) => l.hit === true).length;
     const s = [`최근 7일 ${w}`];
+    if (key === "TAF") {
+      s.unshift(`심층 ${n} · 전체 ${all}`);
+      if (today < "2027-03-01") s.push(`2월 점검 ${n}/60`);
+    }
     const graded = logs.filter((l) => l.verify);
     if ((key === "TAF" || key === "METAR") && graded.length) s.push(`적중 ${Math.round(graded.filter((l) => l.hit).length / graded.length * 100)}% (채점 ${graded.length})`);
     if (key === "구름") s.push(`${new Set(logs.map((l) => l.cloud).filter(Boolean)).size}/10종`);
