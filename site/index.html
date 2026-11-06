@@ -136,6 +136,13 @@ section{margin-top:16px}
 .logs .d{color:var(--ink-3);font-size:12px;width:44px;flex:none}
 .logs .x{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .logs .r{color:var(--ink-2);font-size:12.5px;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:9px;height:9px;border-radius:3px;background:var(--c)}
+.daytbl{max-height:320px;overflow:auto;margin-top:12px;border-top:1px solid var(--line)}
+.daytbl th{position:sticky;top:0;background:var(--panel)}
+.daytbl td{font-variant-numeric:tabular-nums}
+.chk{color:var(--warn);font-size:11px;font-weight:600;margin-left:6px}
 footer{margin-top:32px;color:var(--ink-3);font-size:12.5px;text-align:center}
 footer a{color:inherit}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -184,9 +191,14 @@ footer a{color:inherit}
     <div class="grid active" id="active"></div>
   </section>
 
-  <section class="card">
-    <h2>공부 시간 <small>최근 28일 · 시간</small></h2>
+  <section class="card" id="days">
+    <h2>일차별 공부 시간 <small id="days-sub">1일차부터 · 시간</small></h2>
+    <div class="legend" id="legend"></div>
     <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+    <div class="daytbl"><table class="tbl" id="daytbl">
+      <thead><tr><th>일차</th><th>날짜</th><th>공부</th><th>누적</th><th class="hide">과목</th><th>문제</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
   </section>
 
   <section class="card">
@@ -208,7 +220,7 @@ footer a{color:inherit}
     <ul class="logs" id="logs"></ul>
   </section>
 
-  <footer>입력은 노션에서 · 매시간 자동 갱신</footer>
+  <footer>시트 칠하고 사진 → 드라이브 「기록함」 · 매일 22:50 자동 정리 · 매시간 갱신 · <a href="sheets.pdf">체크 시트 PDF</a></footer>
 </div>
 
 <script>
@@ -232,7 +244,16 @@ const ddLabel = (n) => n > 0 ? `D-${n}` : n === 0 ? "D-DAY" : `D+${-n}`;
 const md = (iso) => { const [, m, d] = iso.split("-"); return `${+m}/${+d}`; };
 const fmtH = (min) => (Math.round(min / 6) / 10).toLocaleString("ko-KR");
 
-fetch("data.json?" + Date.now()).then((r) => r.json()).then(render).catch(() => {
+Promise.all([
+  fetch("data.json?" + Date.now()).then((r) => r.json()),
+  fetch("verify.json?" + Date.now()).then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
+]).then(([D, V]) => {
+  for (const l of D.logs || []) {
+    const v = V[l.id];
+    if (v && v.status === "ok") { l.hit = v.hit; if (l.score == null) l.score = v.score; l.verify = v; }
+  }
+  render(D);
+}).catch(() => {
   $("#sync").textContent = "데이터를 불러오지 못했어요";
 });
 
@@ -311,7 +332,8 @@ function render(D) {
     const w = logs.filter((l) => l.date >= weekAgo).reduce((s, l) => s + (l.qty || 1), 0);
     const hits = logs.filter((l) => l.hit === true).length;
     const s = [`최근 7일 ${w}`];
-    if ((key === "TAF" || key === "METAR") && logs.length) s.push(`적중 ${Math.round(hits / logs.length * 100)}%`);
+    const graded = logs.filter((l) => l.verify);
+    if ((key === "TAF" || key === "METAR") && graded.length) s.push(`적중 ${Math.round(graded.filter((l) => l.hit).length / graded.length * 100)}% (채점 ${graded.length})`);
     if (key === "구름") s.push(`${new Set(logs.map((l) => l.cloud).filter(Boolean)).size}/10종`);
     if (w && goal > n) s.push(`이 속도면 ${Math.ceil((goal - n) / w)}주 남음`);
     wxUl.append(el("li", { style: `--c:var(--a-기상훈련)` },
@@ -346,9 +368,9 @@ function render(D) {
     return c;
   }
 
-  // 공부 시간 차트 (최근 28일)
-  drawChart(L, t);
-  window.addEventListener("resize", () => drawChart(L, t));
+  // 일차별 공부 시간
+  drawDays(L, t, byId);
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => drawDays(L, t, byId), 120); });
 
   // 전체 프로젝트
   const areas = [...new Set(P.map((p) => p.area))];
@@ -404,53 +426,99 @@ function render(D) {
   if (!recent.length) lg.append(el("li", {}, el("div", { class: "empty", style: "width:100%;min-height:90px", text: "노션 「기록」에 첫 기록을 남기면 여기에 쌓여요" })));
   for (const l of recent) {
     const p = byId[(l.projects || [])[0]];
-    const r = [l.minutes ? `${l.minutes}분` : null, l.qty ? `${l.qty}${p?.unit ? " " + p.unit.split(" ")[0] : ""}` : null, l.score != null ? `${l.score}점` : null].filter(Boolean).join(" · ");
+    const r = [l.minutes ? `${l.minutes}분` : null, l.solved ? `${l.correct ?? 0}/${l.solved}문제` : null, l.qty ? `${l.qty}${p?.unit ? " " + p.unit.split(" ")[0] : ""}` : null, l.verify ? `채점 ${l.verify.score}점${l.hit ? " · 적중" : ""}` : (l.score != null && !l.solved ? `${l.score}점` : null)].filter(Boolean).join(" · ");
     lg.append(el("li", { style: `--c:${areaVar(p?.area)}` },
       el("span", { class: "d", text: md(l.date) }),
-      el("span", { class: "x" }, el("span", { class: "tag", style: "margin-right:8px", text: p?.name || l.wx || "" }), l.title || ""),
+      el("span", { class: "x" }, el("span", { class: "tag", style: "margin-right:8px", text: p?.name || l.wx || "" }), l.title || "", l.check ? el("span", { class: "chk", text: "확인 필요" }) : null),
       el("span", { class: "r", text: r })));
   }
 }
 
-function drawChart(L, t) {
+const AREA_ORDER = ["수학","물리","기상학","기상 훈련","어학","자격증","학교","체력","개발"];
+function drawDays(L, t, byId) {
   const box = $("#chart"), tip = $("#tip");
   box.querySelectorAll("svg,.empty").forEach((n) => n.remove());
-  const N = 28, keys = [];
-  for (let i = N - 1; i >= 0; i--) keys.push(new Date(t - i * 864e5).toISOString().slice(0, 10));
-  const m = Object.fromEntries(keys.map((k) => [k, 0]));
-  for (const l of L) if (l.date in m) m[l.date] += l.minutes || 0;
-  const vals = keys.map((k) => m[k] / 60);
-  if (!vals.some((v) => v > 0)) { box.prepend(el("div", { class: "empty", text: "노션 「기록」에 시간(분)을 적으면 하루 공부 시간이 막대로 그려져요" })); return; }
-  const W = Math.max(box.clientWidth, 280), H = 190, ml = 28, mr = 6, mt = 10, mb = 24;
-  const max = Math.max(2, Math.ceil(Math.max(...vals)));
-  const iw = W - ml - mr, ih = H - mt - mb, bw = iw / N;
+  const today = t.toISOString().slice(0, 10);
+  const dated = L.filter((l) => l.date && l.date <= today);
+  const start = dated.length ? dated.map((l) => l.date).sort()[0] : today;
+  const nDays = Math.round((Date.parse(today) - Date.parse(start)) / 864e5) + 1;
+  // 일별 집계
+  const days = [];
+  for (let i = 0; i < nDays; i++) {
+    const k = new Date(Date.parse(start) + i * 864e5).toISOString().slice(0, 10);
+    days.push({ n: i + 1, k, min: 0, by: {}, solved: 0, correct: 0 });
+  }
+  const idx = Object.fromEntries(days.map((d, i) => [d.k, i]));
+  for (const l of dated) {
+    const d = days[idx[l.date]]; if (!d) continue;
+    const area = byId[(l.projects || [])[0]]?.area || "기타";
+    d.min += l.minutes || 0; d.by[area] = (d.by[area] || 0) + (l.minutes || 0);
+    d.solved += l.solved || 0; d.correct += l.correct || 0;
+  }
+  let cum = 0; for (const d of days) { cum += d.min; d.cum = cum; }
+  const used = AREA_ORDER.filter((a) => days.some((d) => d.by[a])).concat(days.some((d) => d.by["기타"]) ? ["기타"] : []);
+  const col = (a) => a === "기타" ? "var(--ink-3)" : areaVar(a);
+  $("#days-sub").textContent = `${days.length}일차 · 누적 ${fmtH(cum)}시간`;
+  const lg = $("#legend"); lg.replaceChildren(...used.map((a) => el("span", { style: `--c:${col(a)}` }, el("i"), a)));
+
+  // 표 (최근 일차가 위)
+  const tb = $("#daytbl tbody"); tb.replaceChildren();
+  for (const d of [...days].reverse()) {
+    const dt = new Date(d.k);
+    tb.append(el("tr", {},
+      el("td", { style: "font-weight:650" }, `${d.n}일차`),
+      el("td", { style: "color:var(--ink-2)" }, `${md(d.k)} (${DOW[dt.getUTCDay()]})`),
+      el("td", { style: "font-weight:600" }, d.min ? `${fmtH(d.min)}h` : "—"),
+      el("td", { style: "color:var(--ink-2)" }, `${fmtH(d.cum)}h`),
+      el("td", { class: "hide", style: "color:var(--ink-2);font-size:12.5px" }, used.filter((a) => d.by[a]).map((a) => `${a} ${fmtH(d.by[a])}`).join(" · ") || "—"),
+      el("td", { style: "color:var(--ink-2)" }, d.solved ? `${d.correct}/${d.solved} (${Math.round(d.correct / d.solved * 100)}%)` : "—")));
+  }
+
+  if (!cum) { box.prepend(el("div", { class: "empty", text: "체크 시트에 시작·끝 시간을 칠해서 올리면 1일차부터 날마다 몇 시간 했는지 쌓여요" })); return; }
+
+  // 차트: 막대(일별, 과목 누적) + 선(누적 시간, 오른쪽 축). 60일 넘으면 최근 60일
+  const show = days.slice(-60);
+  const W = Math.max(box.clientWidth, 280), H = 220, ml = 30, mr = 40, mt = 12, mb = 26;
+  const iw = W - ml - mr, ih = H - mt - mb, bw = iw / show.length;
+  const maxH = Math.max(2, Math.ceil(Math.max(...show.map((d) => d.min)) / 60));
+  const maxC = Math.max(1, Math.ceil(show[show.length - 1].cum / 60));
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", "100%");
-  const add = (tag, a) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); svg.append(e); return e; };
-  const step = max <= 4 ? 1 : max <= 8 ? 2 : 4;
-  for (let v = 0; v <= max; v += step) {
-    const yy = mt + ih - (v / max) * ih;
-    add("line", { x1: ml, x2: W - mr, y1: yy, y2: yy, stroke: "var(--line)", "stroke-width": 1 });
-    add("text", { x: ml - 8, y: yy + 4, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)" }).textContent = v;
+  const add = (tag, a, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); parent.append(e); return e; };
+  const y = (h) => mt + ih - (h / maxH) * ih, yc = (h) => mt + ih - (h / maxC) * ih;
+  const step = maxH <= 4 ? 1 : maxH <= 8 ? 2 : 4;
+  for (let v = 0; v <= maxH; v += step) {
+    add("line", { x1: ml, x2: W - mr, y1: y(v), y2: y(v), stroke: "var(--line)", "stroke-width": 1 });
+    add("text", { x: ml - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)" }).textContent = v + "h";
   }
-  const todayKey = keys[N - 1];
-  keys.forEach((k, i) => {
-    const v = vals[i], h = (v / max) * ih, x = ml + i * bw + bw * 0.18, w = Math.min(bw * 0.64, 22);
-    const r = add("rect", { x, y: mt + ih - h, width: w, height: Math.max(h, v ? 2 : 0), rx: 4, fill: k === todayKey ? "var(--accent)" : "color-mix(in srgb, var(--accent) 45%, transparent)" });
+  for (const v of [0, maxC / 2, maxC]) add("text", { x: W - mr + 6, y: yc(v) + 4, "font-size": 11, fill: "var(--accent)" }).textContent = Math.round(v) + "h";
+  const labelEvery = Math.ceil(show.length / Math.max(4, Math.floor(iw / 48)));
+  show.forEach((d, i) => {
+    const w = Math.max(2, Math.min(bw * 0.66, 24)), x = ml + i * bw + (bw - w) / 2;
+    let acc = 0;
+    for (const a of used) {
+      const m = d.by[a] || 0; if (!m) continue;
+      const y0 = y((acc + m) / 60), h = (m / 60 / maxH) * ih;
+      add("rect", { x, y: y0, width: w, height: Math.max(h - 1, 1), rx: 2, fill: col(a), opacity: 0.85 });
+      acc += m;
+    }
     const hit = add("rect", { x: ml + i * bw, y: mt, width: bw, height: ih, fill: "transparent" });
     hit.addEventListener("mouseenter", () => {
-      const d = new Date(k);
-      tip.textContent = `${d.getUTCMonth() + 1}/${d.getUTCDate()} (${DOW[d.getUTCDay()]}) · ${v.toFixed(1)}시간`;
+      tip.replaceChildren(el("div", { style: "font-weight:650" }, `${d.n}일차 · ${md(d.k)} · ${fmtH(d.min)}h`),
+        ...used.filter((a) => d.by[a]).map((a) => el("div", { style: "color:var(--ink-2)" }, `${a} ${fmtH(d.by[a])}h`)),
+        el("div", { style: "color:var(--accent)" }, `누적 ${fmtH(d.cum)}h`));
       tip.style.opacity = 1;
-      const sx = box.clientWidth / W, tx = (x + w / 2) * sx - tip.offsetWidth / 2;
-      tip.style.left = Math.max(0, Math.min(tx, box.clientWidth - tip.offsetWidth)) + "px";
-      tip.style.top = Math.max(0, (mt + ih - h) * sx - 34) + "px";
+      const sx = box.clientWidth / W;
+      tip.style.left = Math.max(0, Math.min((x + w / 2) * sx - tip.offsetWidth / 2, box.clientWidth - tip.offsetWidth)) + "px";
+      tip.style.top = Math.max(0, y(d.min / 60) * sx - tip.offsetHeight - 8) + "px";
     });
     hit.addEventListener("mouseleave", () => (tip.style.opacity = 0));
-    if (new Date(k).getUTCDay() === 1 || i === N - 1)
-      add("text", { x: ml + i * bw + bw / 2, y: H - 6, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)" }).textContent = i === N - 1 ? "오늘" : md(k);
+    if (i % labelEvery === 0 || i === show.length - 1)
+      add("text", { x: ml + i * bw + bw / 2, y: H - 8, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)" }).textContent = `${d.n}일차`;
   });
+  const pts = show.map((d, i) => `${ml + i * bw + bw / 2},${yc(d.cum / 60)}`).join(" ");
+  add("polyline", { points: pts, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", "pointer-events": "none" });
   box.prepend(svg);
 }
 </script>
