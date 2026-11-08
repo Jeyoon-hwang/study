@@ -91,11 +91,10 @@ def fetch_kma(t, key):
     body = get(f"{KMA}/kma_sfctm2.php?tm={tm}&stn=0&help=0&authKey={key}")
     print("기상청 시간자료 OK:", len(_kma_rows(body)), "줄")
     inf = get(f"{KMA}/stn_inf.php?inf=SFC&stn=&tm={tm}&help=0&authKey={key}")
-    print("지점정보 예시:", [l for l in inf.splitlines() if l.strip()][:4])
     loc = {}
     for r in _kma_rows(inf):
         try:
-            loc[r[0]] = (float(r[1]), float(r[2]), r[-1] if not r[-1].replace(".", "").isdigit() else r[0])
+            loc[r[0]] = (float(r[1]), float(r[2]), r[10] if len(r) > 10 else r[0])
         except (ValueError, IndexError):
             pass
     cols = SFCTM_COLS
