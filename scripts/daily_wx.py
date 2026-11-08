@@ -86,6 +86,8 @@ def fetch_kma(t, key):
     tm = t.astimezone(KST).strftime("%Y%m%d%H%M")
     body = get(f"{KMA}/kma_sfctm2.php?tm={tm}&stn=0&help=0&authKey={key}")
     print("기상청 시간자료 OK:", len(_kma_rows(body)), "줄")
+    print("헤더:", " | ".join(l.strip() for l in body.splitlines() if l.startswith("#"))[:900])
+    print("예시:", (_kma_rows(body) or [[]])[0][:30])
     inf = get(f"{KMA}/stn_inf.php?inf=SFC&stn=&tm={tm}&help=0&authKey={key}")
     loc = {}
     for r in _kma_rows(inf):
