@@ -86,8 +86,6 @@ def fetch_kma(t, key):
     tm = t.astimezone(KST).strftime("%Y%m%d%H%M")
     body = get(f"{KMA}/kma_sfctm2.php?tm={tm}&stn=0&help=0&authKey={key}")
     print("기상청 시간자료 OK:", len(_kma_rows(body)), "줄")
-    print("헤더:", " | ".join(l.strip() for l in body.splitlines() if l.startswith("#"))[:900])
-    print("예시:", (_kma_rows(body) or [[]])[0][:30])
     inf = get(f"{KMA}/stn_inf.php?inf=SFC&stn=&tm={tm}&help=0&authKey={key}")
     loc = {}
     for r in _kma_rows(inf):
@@ -96,10 +94,6 @@ def fetch_kma(t, key):
         except (ValueError, IndexError):
             pass
     cols = SFCTM_COLS
-    for ln in body.splitlines():  # 헤더에 열 이름 줄이 있으면 그걸 우선
-        tok = ln.lstrip("# ").split()
-        if "STN" in tok and "PS" in tok and "TA" in tok:
-            cols = ["TM" if c.startswith("YYMM") else c for c in tok]
     out = []
     for r in _kma_rows(body):
         row = dict(zip(cols, r))
@@ -113,7 +107,7 @@ def fetch_kma(t, key):
         ca = f("CA_TOT")
         lon, lat, name = loc[stn]
         out.append({"icaoId": f"ASOS{stn}", "name": name, "lon": lon, "lat": lat, "temp": f("TA"), "dewp": f("TD"),
-                    "altim": ps, "wdir": f("WD"), "wspd": f("WS") * 1.944 if np.isfinite(f("WS")) else np.nan,
+                    "altim": ps, "wdir": f("WD") * 10, "wspd": f("WS") * 1.944 if np.isfinite(f("WS")) else np.nan,
                     "clouds": [] if not np.isfinite(ca) else [{"cover": ["SKC", "FEW", "FEW", "SCT", "SCT", "SCT", "BKN", "BKN", "BKN", "BKN", "OVC"][int(ca)]}],
                     "cover": None if np.isfinite(ca) else "?", "wxString": ""})
     return out
