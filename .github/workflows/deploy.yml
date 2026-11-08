@@ -39,6 +39,17 @@ jobs:
           git config user.email "dashboard-bot@users.noreply.github.com"
           git add data/verify.json
           git diff --cached --quiet || (git commit -m "채점 결과 갱신" && git push)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+      - name: 오늘의 출력 (지상 손 분석·METAR 해독) 만들기
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
+          pip install -q -r scripts/requirements.txt
+          python scripts/daily_wx.py site/today.pdf
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
