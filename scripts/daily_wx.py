@@ -34,7 +34,11 @@ COVER = {"SKC": 0, "CLR": 0, "NSC": 0, "CAVOK": 0, "FEW": 2, "SCT": 4, "BKN": 6,
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "study-dashboard"})
     with urllib.request.urlopen(req, timeout=40) as r:
-        body = r.read().decode()
+        raw = r.read()
+    try:
+        body = raw.decode()
+    except UnicodeDecodeError:
+        body = raw.decode("euc-kr", "replace")
     return body
 
 
