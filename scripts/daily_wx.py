@@ -310,7 +310,8 @@ def main():
     try:
         kma = fetch_kma(t, os.environ.get("KMA_KEY", ""))
     except Exception as e:
-        print("기상청 자료 실패, METAR만 사용:", e)
+        body = getattr(e, "read", lambda: b"")()[:300].decode("utf-8", "replace") if hasattr(e, "read") else ""
+        print("기상청 자료 실패, METAR만 사용:", getattr(e, "url", "").split("?")[0], e, body.replace("\n", " "))
     if len(kma) >= 20:
         src = f"한국 = 기상청 ASOS 해면기압 {len(kma)}곳, 해외 = METAR QNH"
         mapobs = [o for o in obs if not o["icaoId"].startswith("RK")] + kma
