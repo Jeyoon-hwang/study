@@ -70,6 +70,52 @@ def fetch_taf(station):
         return ""
 
 
+KMA = "https://apihub.kma.go.kr/api/typ01/url"
+SFCTM_COLS = ("TM STN WD WS GST_WD GST_WS GST_TM PA PS PT PR TA TD HM PV RN RN_DAY RN_JUN RN_INT SD_HR3 SD_DAY "
+              "SD_TOT WC WP WW CA_TOT CA_MID CH_MIN CT CT_TOP CT_MID CT_LOW VS SS SI ST_GD TS").split()
+
+
+def _kma_rows(text):
+    return [ln.split() for ln in text.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
+
+
+def fetch_kma(t, key):
+    """기상청 API허브 ASOS(지상관측) 정시 자료 → METAR와 같은 모양의 dict 목록. 해면기압(PS) 사용."""
+    if not key:
+        return []
+    tm = t.astimezone(KST).strftime("%Y%m%d%H%M")
+    inf = get(f"{KMA}/stn_inf.php?inf=SFC&stn=&tm={tm}&help=0&authKey={key}")
+    loc = {}
+    for r in _kma_rows(inf):
+        try:
+            loc[r[0]] = (float(r[1]), float(r[2]), r[-1] if not r[-1].replace(".", "").isdigit() else r[0])
+        except (ValueError, IndexError):
+            pass
+    body = get(f"{KMA}/kma_sfctm2.php?tm={tm}&stn=0&help=0&authKey={key}")
+    cols = SFCTM_COLS
+    for ln in body.splitlines():  # 헤더에 열 이름 줄이 있으면 그걸 우선
+        tok = ln.lstrip("# ").split()
+        if "STN" in tok and "PS" in tok and "TA" in tok:
+            cols = ["TM" if c.startswith("YYMM") else c for c in tok]
+    out = []
+    for r in _kma_rows(body):
+        row = dict(zip(cols, r))
+        stn = row.get("STN")
+        if stn not in loc:
+            continue
+        f = lambda k: (lambda x: np.nan if x is None or x <= -9 else x)(num(row.get(k)))
+        ps = f("PS")
+        if not np.isfinite(ps) or ps < 900:
+            continue
+        ca = f("CA_TOT")
+        lon, lat, name = loc[stn]
+        out.append({"icaoId": f"ASOS{stn}", "name": name, "lon": lon, "lat": lat, "temp": f("TA"), "dewp": f("TD"),
+                    "altim": ps, "wdir": f("WD"), "wspd": f("WS") * 1.944 if np.isfinite(f("WS")) else np.nan,
+                    "clouds": [] if not np.isfinite(ca) else [{"cover": ["SKC", "FEW", "FEW", "SCT", "SCT", "SCT", "BKN", "BKN", "BKN", "BKN", "OVC"][int(ca)]}],
+                    "cover": None if np.isfinite(ca) else "?", "wxString": ""})
+    return out
+
+
 def num(v):
     try:
         return float(v)
@@ -109,11 +155,11 @@ def base_map(fig, rect, title):
 
 def station_plot(ax, proj, d, radius_km=170):
     xy = proj.transform_points(ccrs.PlateCarree(), d["lon"], d["lat"])[:, :2]
-    pri = np.array([0 if i.startswith("RK") else 1 for i in d["ids"]])
+    pri = np.array([0 if i.startswith(("RK", "ASOS")) else 1 for i in d["ids"]])
     keep = reduce_point_density(xy, radius_km * 1000, priority=-pri.astype(float)) if len(xy) else []
     inside = (d["lon"] > EXTENT[0] + .5) & (d["lon"] < EXTENT[1] - .5) & (d["lat"] > EXTENT[2] + .3) & (d["lat"] < EXTENT[3] - .3)
     keep = keep & np.isfinite(d["p"]) & inside if len(xy) else keep
-    s = {k: (np.array(v)[keep] if k != "ids" else [x for x, k2 in zip(v, keep) if k2]) for k, v in d.items()}
+    s = {k: (np.array(v)[keep] if k != "ids" else [x for x, k2 in zip(v, keep) if k2]) for k, v in d.items() if k != "src"}
     from metpy.plots.wx_symbols import wx_symbol_font
     pxy = proj.transform_points(ccrs.PlateCarree(), s["lon"], s["lat"])[:, :2]
     ax.barbs(pxy[:, 0], pxy[:, 1], s["u"], s["v"], length=5.2, linewidth=0.5, transform=proj, zorder=4)
@@ -158,7 +204,8 @@ def page_map(pdf, d, t):
         "  파란 기호 = 현재 날씨",
         "  깃: 짧은 깃 5kt, 긴 깃 10kt, 삼각 50kt",
         "",
-        f"관측소 {n}개 · 기압은 METAR QNH",
+        f"관측소 {n}개 · {d['src']}",
+        "공식 분석: 날씨누리 → 날씨 → 일기도 → 분석일기도",
         "정답(자동 등압선)은 3쪽 — 다 그리고 볼 것",
         "다 그리면 사진 → 드라이브 「기록함」",
     ]
@@ -258,13 +305,25 @@ def main():
     if len(obs) < 30:
         t -= dt.timedelta(days=1)
         obs = fetch_obs(t)
-    d = prep(obs)
+    import os
+    kma, src = [], "METAR QNH"
+    try:
+        kma = fetch_kma(t, os.environ.get("KMA_KEY", ""))
+    except Exception as e:
+        print("기상청 자료 실패, METAR만 사용:", e)
+    if len(kma) >= 20:
+        src = f"한국 = 기상청 ASOS 해면기압 {len(kma)}곳, 해외 = METAR QNH"
+        mapobs = [o for o in obs if not o["icaoId"].startswith("RK")] + kma
+    else:
+        mapobs = obs
+    d = prep(mapobs)
+    d["src"] = src
     taf = fetch_taf("RKPK")
     with PdfPages(out) as pdf:
         page_map(pdf, d, t)
         picks = page_metar(pdf, obs, t, taf)
         page_answer(pdf, d, picks, t)
-    print(f"{out}: {t:%Y-%m-%d %HZ}, 관측소 {len(obs)}개")
+    print(f"{out}: {t:%Y-%m-%d %HZ}, METAR {len(obs)}개, 기상청 ASOS {len(kma)}개 · {src}")
 
 
 if __name__ == "__main__":

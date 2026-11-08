@@ -46,6 +46,8 @@ jobs:
           cache-dependency-path: scripts/requirements.txt
       - name: 오늘의 출력 (지상 손 분석·METAR 해독) 만들기
         continue-on-error: true
+        env:
+          KMA_KEY: ${{ secrets.KMA_KEY }}
         run: |
           sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
           pip install -q -r scripts/requirements.txt
