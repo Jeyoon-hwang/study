@@ -84,6 +84,8 @@ def fetch_kma(t, key):
     if not key:
         return []
     tm = t.astimezone(KST).strftime("%Y%m%d%H%M")
+    body = get(f"{KMA}/kma_sfctm2.php?tm={tm}&stn=0&help=0&authKey={key}")
+    print("기상청 시간자료 OK:", len(_kma_rows(body)), "줄")
     inf = get(f"{KMA}/stn_inf.php?inf=SFC&stn=&tm={tm}&help=0&authKey={key}")
     loc = {}
     for r in _kma_rows(inf):
@@ -91,7 +93,6 @@ def fetch_kma(t, key):
             loc[r[0]] = (float(r[1]), float(r[2]), r[-1] if not r[-1].replace(".", "").isdigit() else r[0])
         except (ValueError, IndexError):
             pass
-    body = get(f"{KMA}/kma_sfctm2.php?tm={tm}&stn=0&help=0&authKey={key}")
     cols = SFCTM_COLS
     for ln in body.splitlines():  # 헤더에 열 이름 줄이 있으면 그걸 우선
         tok = ln.lstrip("# ").split()
