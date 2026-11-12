@@ -2,3 +2,5 @@ sheets/preview*.png
 sheets/sheets.html
 timetable/week.html
 site/today.pdf
+site/charts/
+site/charts.json

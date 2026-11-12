@@ -8,6 +8,9 @@
 
 필요한 것: 저장소 Secret `NOTION_TOKEN` (노션 내부 통합 토큰, 3개 DB에 연결 필요).
 
+## 일기도
+- `scripts/kma-charts.mjs`: 기상청 분석일기도(지상 3시간·850/700/500/300hPa 12시간) 최신본 → `site/charts/`, 대시보드 「오늘의 일기도」. Secret `KMA_KEY` 사용
+
 ## 자동 기록
 - 섀도 TAF 목표: 심층 분석 500개 (기록 DB「심층」 체크분만 집계, 2027-02-28 점검 60개)
 - 체크 시트: `sheets/make_sheets.py` → `site/sheets.pdf` (S1 공부, W1 기상 훈련)

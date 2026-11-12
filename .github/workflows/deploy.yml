@@ -31,6 +31,11 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: node scripts/fetch-notion.mjs
+      - name: 기상청 분석일기도 받기
+        continue-on-error: true
+        env:
+          KMA_KEY: ${{ secrets.KMA_KEY }}
+        run: node scripts/kma-charts.mjs
       - name: 기상 훈련 자동 채점 (실제 METAR 비교)
         run: node scripts/verify-wx.mjs
       - name: 채점 결과 저장

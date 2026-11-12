@@ -87,6 +87,13 @@ section{margin-top:16px}
 .bar i{display:block;height:100%;border-radius:99px;background:var(--c,var(--accent));transition:width .6s cubic-bezier(.2,.7,.2,1)}
 .meta{font-size:12px;color:var(--ink-3);display:flex;justify-content:space-between}
 
+/* charts */
+.ch-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.ch-tabs button{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-2,inherit);cursor:pointer}
+.ch-tabs button[aria-pressed="true"]{background:var(--ink,#111);color:var(--panel,#fff);border-color:transparent}
+.ch-fig{margin:14px 0 0;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.ch-fig img{display:block;width:100%;height:auto}
+.ch-cap{font-size:12px;color:var(--ink-3);margin-top:8px}
 /* wx */
 .wx{list-style:none;padding:0;margin-top:16px;display:grid;gap:16px}
 .wx .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
@@ -191,6 +198,13 @@ footer a{color:inherit}
     </div>
   </section>
 
+  <section class="card" id="charts">
+    <h2>오늘의 일기도 <small id="ch-sub">기상청 분석일기도</small></h2>
+    <div class="ch-tabs" id="ch-tabs" role="group" aria-label="일기도 고도"></div>
+    <a id="ch-link" href="#" target="_blank" rel="noopener"><figure class="ch-fig"><img id="ch-img" alt="" loading="lazy"></figure></a>
+    <div class="ch-cap" id="ch-cap"></div>
+  </section>
+
   <section class="card">
     <h2>진행 중 <small id="active-n"></small></h2>
     <div class="grid active" id="active"></div>
@@ -248,6 +262,27 @@ const days = (iso) => Math.round((Date.parse(iso) - Date.parse(kstToday())) / 86
 const ddLabel = (n) => n > 0 ? `D-${n}` : n === 0 ? "D-DAY" : `D+${-n}`;
 const md = (iso) => { const [, m, d] = iso.split("-"); return `${+m}/${+d}`; };
 const fmtH = (min) => (Math.round(min / 6) / 10).toLocaleString("ko-KR");
+
+// 일기도
+fetch("charts.json?" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((C) => {
+  const box = document.getElementById("charts");
+  if (!C || !C.charts || !C.charts.length) { box.hidden = true; return; }
+  const tabs = document.getElementById("ch-tabs"), img = document.getElementById("ch-img"),
+    link = document.getElementById("ch-link"), cap = document.getElementById("ch-cap");
+  const v = "?" + Date.parse(C.updated);
+  let saved = null; try { saved = localStorage.getItem("chart"); } catch {}
+  const show = (c) => {
+    img.src = c.file + v; img.alt = `${c.name} 분석일기도 ${c.label}`; link.href = c.file + v;
+    cap.textContent = `${c.name} · ${c.label} · 눌러서 크게 보기`;
+    for (const b of tabs.children) b.setAttribute("aria-pressed", String(b.dataset.id === c.id));
+    try { localStorage.setItem("chart", c.id); } catch {}
+  };
+  for (const c of C.charts) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = c.name; b.dataset.id = c.id;
+    b.onclick = () => show(c); tabs.append(b);
+  }
+  show(C.charts.find((c) => c.id === saved) || C.charts[0]);
+}).catch(() => { document.getElementById("charts").hidden = true; });
 
 Promise.all([
   fetch("data.json?" + Date.now()).then((r) => r.json()),
