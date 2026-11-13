@@ -267,9 +267,23 @@ def decode(o):
     return [wind, vis, o.get("wxString") or "없음", cl, f"{o.get('temp')}/{o.get('dewp')}", str(o.get("altim"))]
 
 
-def page_answer(pdf, d, picks, t):
+def page_answer(pdf, d, picks, t, has_answer=False):
     fig = plt.figure(figsize=(11.69, 8.27))
-    ax, proj = base_map(fig, [0.03, 0.08, 0.62, 0.86], "③ 정답: 자동 분석 등압선 (4hPa) — 손 분석 끝내고 비교")
+    if has_answer:
+        # 정답 = 같은 시각 기상청 공식 분석일기도 (자동 보간은 관측이 드물어 부정확)
+        img = plt.imread(ANSWER)
+        h, w = img.shape[:2]
+        aw = 0.62; ah = aw * 11.69 / 8.27 * h / w
+        ax = fig.add_axes([0.03, 0.94 - ah, aw, ah]); ax.imshow(img); ax.axis("off")
+        fig.text(0.03, 0.955, f"③ 정답: 기상청 분석일기도 {t.astimezone(KST):%m/%d %H}시 KST ({t:%H}Z) — 손 분석 끝내고 비교", fontsize=10)
+    else:
+        page_answer_auto(fig, d)
+    page_answer_metar(fig, picks)
+    pdf.savefig(fig); plt.close(fig)
+
+
+def page_answer_auto(fig, d):
+    ax, proj = base_map(fig, [0.03, 0.08, 0.62, 0.86], "③ 정답: 자동 분석 등압선 (4hPa) — 기상청 일기도를 못 받아 대신 표시")
     ok = np.isfinite(d["p"])
     xy = proj.transform_points(ccrs.PlateCarree(), d["lon"][ok], d["lat"][ok])[:, :2]
     gx, gy, gp = interpolate_to_grid(xy[:, 0], xy[:, 1], d["p"][ok], interp_type="barnes",
@@ -296,6 +310,9 @@ def page_answer(pdf, d, picks, t):
                     ax.text(gx[i, j], gy[i, j], lab, transform=proj, fontsize=16, weight="bold", color=col, ha="center", va="center", clip_on=True)
     except Exception:
         pass
+
+
+def page_answer_metar(fig, picks):
     fig.text(0.67, 0.90, "METAR 해독 정답", fontsize=11, weight="bold")
     y = 0.86
     for o in picks:
@@ -303,8 +320,7 @@ def page_answer(pdf, d, picks, t):
         fig.text(0.67, y, o["icaoId"], fontsize=8.6, weight="bold"); y -= 0.022
         txt = f"바람 {row[0]} · 시정 {row[1]} · 현천 {row[2]}\n구름 {row[3]} · 기온/이슬점 {row[4]} · QNH {row[5]}"
         fig.text(0.67, y, txt, fontsize=7.6, va="top", linespacing=1.5); y -= 0.065
-    fig.text(0.67, 0.12, "자동 등압선은 관측소 사이를 수학적으로 보간한 것이라\n바다 위·관측 드문 곳은 실제와 다를 수 있음.\n공식 분석은 기상청 날씨누리 「분석일기도」와 비교.", fontsize=7.2, color="#555", linespacing=1.5)
-    pdf.savefig(fig); plt.close(fig)
+    fig.text(0.67, 0.12, "채점: 등압선 위치·간격, 고·저기압 중심, 전선.\n기입도에 없는 중국·바다 관측까지 기상청이 반영했으니\n관측 드문 곳의 차이는 감점하지 말 것.", fontsize=7.2, color="#555", linespacing=1.5)
 
 
 def main():
@@ -329,15 +345,39 @@ def main():
     d = prep(mapobs)
     d["src"] = src
     taf = fetch_taf("RKPK")
+    has_answer = fetch_answer(t)
     with PdfPages(out) as pdf:
         page_map(pdf, d, t)
         picks = page_metar(pdf, obs, t, taf)
-        page_answer(pdf, d, picks, t)
+        page_answer(pdf, d, picks, t, has_answer)
     print(f"{out}: {t:%Y-%m-%d %HZ}, METAR {len(obs)}개, 기상청 ASOS {len(kma)}개 · {src}")
-    add_raw_to_charts(t)
+    add_raw_to_charts(t, has_answer)
 
 
-def add_raw_to_charts(t):
+ANSWER = "site/charts/answer.png"
+
+
+def fetch_answer(t):
+    """같은 시각의 기상청 지상 분석일기도를 site/charts/answer.png로 저장. 성공하면 True"""
+    import os
+    os.makedirs("site/charts", exist_ok=True)
+    url = f"http://www.kma.go.kr/repositary/image/cht/img/sfc3_{t:%Y%m%d%H}.png"
+    for _ in range(3):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "study-dashboard"})
+            with urllib.request.urlopen(req, timeout=40) as r:
+                if "image" not in (r.headers.get("Content-Type") or ""):
+                    print("정답 일기도 아직 없음:", url)
+                    return False
+                with open(ANSWER, "wb") as f:
+                    f.write(r.read())
+                return True
+        except Exception as e:
+            print("정답 일기도 실패:", e)
+    return False
+
+
+def add_raw_to_charts(t, has_answer):
     """site/charts.json 맨 앞에 「기입도(선 없음)」 탭 추가"""
     import os
     if not os.path.exists("site/charts/raw.png"):
@@ -351,22 +391,9 @@ def add_raw_to_charts(t):
     C["charts"] = [c for c in C["charts"] if c.get("id") not in ("raw", "answer")]
     tabs = [{"id": "raw", "name": "기입도 (선 없음)", "file": "charts/raw.png", "utc": t.isoformat(),
              "label": f"{k.month}/{k.day} {k:%H}시 KST ({t:%H}Z) · 손 분석용, 채점은 「정답」 탭"}]
-    # 같은 시각의 기상청 지상 분석일기도 = 정답
-    url = f"http://www.kma.go.kr/repositary/image/cht/img/sfc3_{t:%Y%m%d%H}.png"
-    for _ in range(3):
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "study-dashboard"})
-            with urllib.request.urlopen(req, timeout=40) as r:
-                if "image" in (r.headers.get("Content-Type") or ""):
-                    with open("site/charts/answer.png", "wb") as f:
-                        f.write(r.read())
-                    tabs.append({"id": "answer", "name": "정답 (같은 시각)", "file": "charts/answer.png", "utc": t.isoformat(),
-                                 "label": f"{k.month}/{k.day} {k:%H}시 KST ({t:%H}Z) · 기상청 분석일기도"})
-                else:
-                    print("정답 일기도 아직 없음:", url)
-            break
-        except Exception as e:
-            print("정답 일기도 실패:", e)
+    if has_answer:
+        tabs.append({"id": "answer", "name": "정답 (같은 시각)", "file": "charts/answer.png", "utc": t.isoformat(),
+                     "label": f"{k.month}/{k.day} {k:%H}시 KST ({t:%H}Z) · 기상청 분석일기도"})
     C["charts"][0:0] = tabs
     with open("site/charts.json", "w") as f:
         json.dump(C, f, ensure_ascii=False, indent=1)
