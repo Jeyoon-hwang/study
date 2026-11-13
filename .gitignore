@@ -4,3 +4,4 @@ timetable/week.html
 site/today.pdf
 site/charts/
 site/charts.json
+__pycache__/
