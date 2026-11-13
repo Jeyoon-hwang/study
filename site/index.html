@@ -165,7 +165,7 @@ footer a{color:inherit}
       <div class="sub" id="today">—</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <a class="print" href="today.pdf" target="_blank" rel="noopener">오늘의 출력 PDF</a>
+      <a class="print" data-fresh href="today.pdf" target="_blank" rel="noopener">오늘의 출력 PDF</a>
       <div class="sync"><span class="dot"></span><span id="sync">—</span></div>
     </div>
   </header>
@@ -239,7 +239,7 @@ footer a{color:inherit}
     <ul class="logs" id="logs"></ul>
   </section>
 
-  <footer>시트 칠하고 사진 → 드라이브 「기록함」 · 매일 22:50 자동 정리 · 매시간 갱신 · <a href="sheets.pdf">체크 시트 PDF</a> · <a href="today.pdf">오늘의 출력 (매일 09시 관측 기준)</a></footer>
+  <footer>시트 칠하고 사진 → 드라이브 「기록함」 · 매일 22:50 자동 정리 · 매시간 갱신 · <a href="sheets.pdf">체크 시트 PDF</a> · <a data-fresh href="today.pdf">오늘의 출력 (매일 09시 관측 기준)</a></footer>
 </div>
 
 <script>
@@ -263,6 +263,8 @@ const ddLabel = (n) => n > 0 ? `D-${n}` : n === 0 ? "D-DAY" : `D+${-n}`;
 const md = (iso) => { const [, m, d] = iso.split("-"); return `${+m}/${+d}`; };
 const fmtH = (min) => (Math.round(min / 6) / 10).toLocaleString("ko-KR");
 
+// 브라우저 캐시 때문에 옛 PDF가 뜨지 않도록 링크에 매시간 바뀌는 값을 붙인다
+for (const a of document.querySelectorAll("a[data-fresh]")) a.href = a.getAttribute("href").split("?")[0] + "?v=" + Math.floor(Date.now() / 36e5);
 // 일기도
 fetch("charts.json?" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((C) => {
   const box = document.getElementById("charts");
