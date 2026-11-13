@@ -348,9 +348,26 @@ def add_raw_to_charts(t):
     except Exception:
         C = {"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "charts": []}
     k = t.astimezone(KST)
-    C["charts"] = [c for c in C["charts"] if c.get("id") != "raw"]
-    C["charts"].insert(0, {"id": "raw", "name": "기입도 (선 없음)", "file": "charts/raw.png", "utc": t.isoformat(),
-                           "label": f"{k.month}/{k.day} {k:%H}시 KST ({t:%H}Z) · 손 분석용, 정답은 지상 탭"})
+    C["charts"] = [c for c in C["charts"] if c.get("id") not in ("raw", "answer")]
+    tabs = [{"id": "raw", "name": "기입도 (선 없음)", "file": "charts/raw.png", "utc": t.isoformat(),
+             "label": f"{k.month}/{k.day} {k:%H}시 KST ({t:%H}Z) · 손 분석용, 채점은 「정답」 탭"}]
+    # 같은 시각의 기상청 지상 분석일기도 = 정답
+    url = f"http://www.kma.go.kr/repositary/image/cht/img/sfc3_{t:%Y%m%d%H}.png"
+    for _ in range(3):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "study-dashboard"})
+            with urllib.request.urlopen(req, timeout=40) as r:
+                if "image" in (r.headers.get("Content-Type") or ""):
+                    with open("site/charts/answer.png", "wb") as f:
+                        f.write(r.read())
+                    tabs.append({"id": "answer", "name": "정답 (같은 시각)", "file": "charts/answer.png", "utc": t.isoformat(),
+                                 "label": f"{k.month}/{k.day} {k:%H}시 KST ({t:%H}Z) · 기상청 분석일기도"})
+                else:
+                    print("정답 일기도 아직 없음:", url)
+            break
+        except Exception as e:
+            print("정답 일기도 실패:", e)
+    C["charts"][0:0] = tabs
     with open("site/charts.json", "w") as f:
         json.dump(C, f, ensure_ascii=False, indent=1)
 
