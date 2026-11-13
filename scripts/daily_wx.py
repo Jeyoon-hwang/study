@@ -211,7 +211,15 @@ def page_map(pdf, d, t):
         "다 그리면 사진 → 드라이브 「기록함」",
     ]
     fig.text(0.77, 0.86, "\n".join(steps), fontsize=8.2, va="top", linespacing=1.55)
-    pdf.savefig(fig); plt.close(fig)
+    pdf.savefig(fig)
+    # 대시보드용: 선 없는 기입도 PNG
+    try:
+        import os
+        os.makedirs("site/charts", exist_ok=True)
+        fig.savefig("site/charts/raw.png", dpi=120, bbox_inches=fig.bbox_inches.from_bounds(0.2, 0.6, 8.6, 7.3))
+    except Exception as e:
+        print("기입도 PNG 실패:", e)
+    plt.close(fig)
 
 
 def page_metar(pdf, obs, t, taf):
@@ -326,6 +334,25 @@ def main():
         picks = page_metar(pdf, obs, t, taf)
         page_answer(pdf, d, picks, t)
     print(f"{out}: {t:%Y-%m-%d %HZ}, METAR {len(obs)}개, 기상청 ASOS {len(kma)}개 · {src}")
+    add_raw_to_charts(t)
+
+
+def add_raw_to_charts(t):
+    """site/charts.json 맨 앞에 「기입도(선 없음)」 탭 추가"""
+    import os
+    if not os.path.exists("site/charts/raw.png"):
+        return
+    try:
+        with open("site/charts.json") as f:
+            C = json.load(f)
+    except Exception:
+        C = {"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "charts": []}
+    k = t.astimezone(KST)
+    C["charts"] = [c for c in C["charts"] if c.get("id") != "raw"]
+    C["charts"].insert(0, {"id": "raw", "name": "기입도 (선 없음)", "file": "charts/raw.png", "utc": t.isoformat(),
+                           "label": f"{k.month}/{k.day} {k:%H}시 KST ({t:%H}Z) · 손 분석용, 정답은 지상 탭"})
+    with open("site/charts.json", "w") as f:
+        json.dump(C, f, ensure_ascii=False, indent=1)
 
 
 if __name__ == "__main__":
