@@ -136,7 +136,10 @@ def prep(obs):
     for o in obs:
         cs = [COVER.get(c.get("cover"), 0) for c in (o.get("clouds") or [])]
         cov.append(min(max(cs), 8) if cs else (0 if o.get("cover") in ("CAVOK", "CLR", "SKC", "NSC") else 10))
-    wx = wx_code_to_numeric([o.get("wxString") or "" for o in obs])
+    wx = np.array(wx_code_to_numeric([o.get("wxString") or "" for o in obs]), dtype=float)
+    for i, o in enumerate(obs):
+        if o.get("ww"):
+            wx[i] = o["ww"]
     ids = [o["icaoId"] for o in obs]
     return dict(lon=lon, lat=lat, t=t, td=td, p=p, u=u, v=v, cov=np.array(cov), wx=wx, ids=ids)
 
@@ -337,7 +340,18 @@ def main():
     except Exception as e:
         body = getattr(e, "read", lambda: b"")()[:300].decode("utf-8", "replace") if hasattr(e, "read") else ""
         print("기상청 자료 실패, METAR만 사용:", getattr(e, "url", "").split("?")[0], e, body.replace("\n", " "))
+    gts, gn = [], {}
+    try:
+        gts, gn = fetch_gts(t, os.environ.get("KMA_KEY", ""))
+    except Exception as e:
+        print("GTS 실패:", e)
     if len(kma) >= 20:
+        # 남한은 ASOS가 더 촘촘하므로 남한 SYNOP(47090~47299)은 뺀다. 북한(470xx)·일본(474xx~)은 유지
+        gts = [o for o in gts if not (o["icaoId"].startswith("WMO") and 47090 <= int(o["icaoId"][3:]) <= 47299)]
+    if gn.get("synop", 0) >= 100:
+        src = f"기상청 ASOS {len(kma)} · GTS SYNOP {gn['synop']} · 선박·부이 {gn['sea']} (모두 해면기압)"
+        mapobs = kma + gts
+    elif len(kma) >= 20:
         src = f"한국 = 기상청 ASOS 해면기압 {len(kma)}곳, 해외 = METAR QNH"
         mapobs = [o for o in obs if not o["icaoId"].startswith("RK")] + kma
     else:
@@ -352,6 +366,104 @@ def main():
         page_answer(pdf, d, picks, t, has_answer)
     print(f"{out}: {t:%Y-%m-%d %HZ}, METAR {len(obs)}개, 기상청 ASOS {len(kma)}개 · {src}")
     add_raw_to_charts(t, has_answer)
+
+
+def _miss(x, bad=(-9, -99, -999)):
+    v = num(x)
+    return np.nan if not np.isfinite(v) or any(abs(v - b) < 1e-6 for b in bad) or v <= -90 else v
+
+
+def _wmo_table():
+    import os
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "wmo_stations.csv")
+    tab = {}
+    with open(path) as f:
+        for ln in f:
+            if ln.startswith("#") or not ln.strip():
+                continue
+            k, la, lo = ln.strip().split(",")
+            tab[k] = (float(la), float(lo))
+    return tab
+
+
+def _gts(name, q, key):
+    for i in range(3):
+        try:
+            return _kma_rows(get(f"{KMA}/{name}.php?{q}&help=0&authKey={key}"))
+        except Exception as e:
+            err = e
+    print(f"GTS {name} 실패:", err)
+    return []
+
+
+def _obs(ident, lon, lat, ta, td, ps, wd, ws, ca8, ww):
+    if not (np.isfinite(ps) and 940 < ps < 1060):
+        return None
+    wdir = np.nan if not np.isfinite(wd) or wd in (0, 990) or wd > 360 else wd
+    wspd = 0.0 if wd == 0 else (ws * 1.944 if np.isfinite(ws) else np.nan)
+    cov = None if not np.isfinite(ca8) else ["SKC", "FEW", "FEW", "SCT", "SCT", "SCT", "BKN", "BKN", "OVC", "OVX"][int(min(max(ca8, 0), 9))]
+    return {"icaoId": ident, "lon": lon, "lat": lat, "temp": ta, "dewp": td, "altim": ps, "wdir": wdir, "wspd": wspd,
+            "clouds": [{"cover": cov}] if cov else [], "cover": None if cov else "?", "wxString": "",
+            "ww": int(ww) if np.isfinite(ww) and 4 <= ww < 100 else 0}
+
+
+def fetch_gts(t, key):
+    """기상청 API허브 GTS: 지상 SYNOP(BUFR 우선, TAC 보충) + 선박 + 부이 → METAR 모양 dict 목록 (해면기압)"""
+    if not key:
+        return [], {}
+    tm = t.strftime("%Y%m%d%H%M")
+    tab = _wmo_table()
+    lat0, lon0, lat1, lon1 = BBOX
+    inbox = lambda la, lo: lat0 <= la <= lat1 and lon0 <= lo <= lon1
+    syn = {}
+    # BUFR: TM STN CH VV CA(%) WD WS TA TD HM PA PS PT PR RN RH WC ...
+    for r in _gts("gts_bufr_syn", f"tm={tm}&dtm=0&stn=0", key):
+        if len(r) < 17 or r[1].zfill(5) not in tab:
+            continue
+        k = r[1].zfill(5); la, lo = tab[k]
+        if not inbox(la, lo):
+            continue
+        ca = _miss(r[4]); o = _obs(f"WMO{k}", lo, la, _miss(r[7]), _miss(r[8]), _miss(r[11]), _miss(r[5]), _miss(r[6]),
+                                   np.nan if not np.isfinite(ca) else round(ca / 12.5), _miss(r[16]))
+        if o:
+            syn[k] = o
+    # TAC: TM STN IW IR IX CH VV CA(okta) WD WS TA TD HM PA PS PT PR RN RH WC ...
+    for r in _gts("gts_syn", f"tm={tm}&dtm=0&stn=0", key):
+        if len(r) < 20 or r[1].zfill(5) not in tab or r[1].zfill(5) in syn:
+            continue
+        k = r[1].zfill(5); la, lo = tab[k]
+        if not inbox(la, lo):
+            continue
+        o = _obs(f"WMO{k}", lo, la, _miss(r[10]), _miss(r[11]), _miss(r[14]), _miss(r[8]), _miss(r[9]), _miss(r[7]), _miss(r[19]))
+        if o:
+            syn[k] = o
+    sea = []
+    # 선박: TM 이름 LAT LON IW IR IX CH VV CA WD WS TA TD HM PA PS ... WC(22번째)
+    for r in _gts("gts_ship1", f"tm={tm}", key):
+        try:
+            la, lo = float(r[2]), float(r[3])
+        except (ValueError, IndexError):
+            continue
+        if len(r) < 22 or not inbox(la, lo):
+            continue
+        o = _obs(f"SHIP{r[1]}", lo, la, _miss(r[12]), _miss(r[13]), _miss(r[16]), _miss(r[10]), _miss(r[11]), _miss(r[9]), _miss(r[21]))
+        if o:
+            sea.append(o)
+    # 부이: TM STN LON LAT IW DU Q1 WD WS TA TD HM PA PS ...
+    for r in _gts("gts_buoy1", f"tm={tm}&dtm=0&stn=0", key):
+        try:
+            lo, la = float(r[2]), float(r[3])
+        except (ValueError, IndexError):
+            continue
+        if len(r) < 14 or not inbox(la, lo):
+            continue
+        ps = _miss(r[13]); ps = ps if np.isfinite(ps) else _miss(r[12])  # 부이는 현지기압 = 해면
+        o = _obs(f"BUOY{r[1]}", lo, la, _miss(r[9]), _miss(r[10]), ps, _miss(r[7]), _miss(r[8]), np.nan, np.nan)
+        if o:
+            sea.append(o)
+    n = {"synop": len(syn), "sea": len(sea)}
+    print(f"GTS: SYNOP {len(syn)}곳, 선박·부이 {len(sea)}곳")
+    return list(syn.values()) + sea, n
 
 
 ANSWER = "site/charts/answer.png"

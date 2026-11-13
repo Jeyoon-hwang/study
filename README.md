@@ -9,6 +9,7 @@
 필요한 것: 저장소 Secret `NOTION_TOKEN` (노션 내부 통합 토큰, 3개 DB에 연결 필요).
 
 ## 일기도
+- 기입도(선 없음): 기상청 ASOS + GTS SYNOP(BUFR·TAC) + 선박·부이, 모두 해면기압. 지점 좌표 `data/wmo_stations.csv`
 - `scripts/kma-charts.mjs`: 기상청 분석일기도(지상 3시간·850/700/500/300hPa 12시간) 최신본 → `site/charts/`, 대시보드 「오늘의 일기도」. Secret `KMA_KEY` 사용
 
 ## 자동 기록
