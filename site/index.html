@@ -87,6 +87,21 @@ section{margin-top:16px}
 .bar i{display:block;height:100%;border-radius:99px;background:var(--c,var(--accent));transition:width .6s cubic-bezier(.2,.7,.2,1)}
 .meta{font-size:12px;color:var(--ink-3);display:flex;justify-content:space-between}
 
+/* exam board */
+.ex-head{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline;margin:6px 0 12px;font-size:13px;color:var(--ink-2)}
+.ex-head b{font-size:26px;font-weight:750;color:var(--ink);letter-spacing:-.02em}
+.ex-bar{height:6px;border-radius:99px;background:var(--line-2);overflow:hidden;flex:1 1 140px;align-self:center}
+.ex-bar i{display:block;height:100%;background:var(--ink-2)}
+.ex-list{list-style:none;margin:0;padding:0}
+.ex-list li{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line-2);font-size:13.5px}
+.ex-list li:first-child{border-top:0}
+.ex-list .d{font-variant-numeric:tabular-nums;color:var(--ink-3);font-size:12.5px;min-width:64px}
+.ex-k{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--line-2);color:var(--ink-2)}
+.ex-k.t{background:#fee4e2;color:#b42318}.ex-k.s{background:#fef0c7;color:#93370d}
+@media (prefers-color-scheme:dark){.ex-k.t{background:#3b1714;color:#ff9c94}.ex-k.s{background:#3a2a0b;color:#f6c362}}
+.ex-n small{display:block;color:var(--ink-3);font-size:12px}
+.ex-list li.done{opacity:.55}.ex-list li.done .ex-n{text-decoration:line-through}
+@media (max-width:520px){.ex-list li{grid-template-columns:auto 1fr auto}.ex-list .d{display:none}}
 /* charts */
 .ch-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .ch-tabs button{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-2,inherit);cursor:pointer}
@@ -186,6 +201,12 @@ footer a{color:inherit}
       <div class="card stat"><div class="k">기상 훈련 누적</div><div class="v" id="s-wx">—</div><div class="s">TAF·METAR·일기도·Skew-T·구름</div></div>
     </div>
   </div>
+
+  <section class="card" id="exam" hidden>
+    <h2>시험·수행 현황 <small>시험·수행 6주 전부터 표시</small></h2>
+    <div class="ex-head" id="ex-head"></div>
+    <ul class="ex-list" id="ex-list"></ul>
+  </section>
 
   <section class="grid two">
     <div class="card">
@@ -328,6 +349,44 @@ function render(D) {
     const d = new Date(nx.date);
     $("#h-date").textContent = `${md(nx.date)} (${DOW[d.getUTCDay()]})`;
   } else { $("#h-dd").textContent = "—"; $("#h-nm").textContent = "남은 관문이 없어요"; }
+
+  // 시험·수행 현황판: 6주(42일) 안에 시험·수행이 있으면 표시
+  {
+    const EX = M.filter((m) => (m.kind === "시험" || m.kind === "수행") && m.date)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const pending = EX.filter((m) => !m.done);
+    const near = pending.filter((m) => days(m.date) >= 0 && days(m.date) <= 42);
+    const box = $("#exam");
+    if (near.length || pending.some((m) => days(m.date) < 0 && days(m.date) >= -14)) {
+      box.hidden = false;
+      const exams = pending.filter((m) => m.kind === "시험" && days(m.date) >= 0);
+      const last = exams.length ? exams[exams.length - 1].date : null;
+      const horizon = (m) => days(m.date) <= 42 || (last && m.date <= last);
+      const rows = EX.filter((m) => days(m.date) >= -14 && horizon(m));
+      const perf = rows.filter((m) => m.kind === "수행");
+      const pd = perf.filter((m) => m.done).length;
+      const head = $("#ex-head"); head.innerHTML = "";
+      if (exams[0]) head.append(el("span", {}, el("b", { text: ddLabel(days(exams[0].date)) }), ` ${exams[0].name} · ${md(exams[0].date)}`));
+      if (perf.length) {
+        const bar = el("div", { class: "ex-bar" }, el("i", { style: `width:${Math.round((pd / perf.length) * 100)}%` }));
+        head.append(el("span", { text: `수행 ${pd}/${perf.length} 완료` }), bar);
+      }
+      const late = pending.filter((m) => days(m.date) < 0 && days(m.date) >= -14).length;
+      if (late) head.append(el("span", { style: "color:#b42318", text: `지난 것 ${late}개 완료 체크 안 됨` }));
+      const ul = $("#ex-list"); ul.innerHTML = "";
+      for (const m of rows) {
+        const n = days(m.date);
+        const pill = m.done ? el("span", { class: "pill", text: m.result || "완료" })
+          : el("span", { class: "pill" + (n < 0 || n <= 3 ? " hot" : n <= 14 ? " soon" : ""), text: n < 0 ? "체크 안 됨" : ddLabel(n) });
+        ul.append(el("li", { class: m.done ? "done" : "" },
+          el("span", { class: "d", text: `${md(m.date)} (${DOW[new Date(m.date).getUTCDay()]})` }),
+          el("span", { class: "ex-k " + (m.kind === "시험" ? "t" : "s"), text: m.kind }),
+          el("span", { class: "ex-n" }, m.subject ? `${m.subject} · ${m.name.replace(/^수행:\s*/, "")}` : m.name,
+            m.criteria ? el("small", { text: m.criteria }) : null),
+          pill));
+      }
+    } else box.hidden = true;
+  }
 
   // 통계
   const dow = (t.getUTCDay() + 6) % 7; // 월=0

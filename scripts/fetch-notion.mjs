@@ -81,7 +81,7 @@ const data = {
     id: x.id,
     ...pick(x, {
       name: "마일스톤", date: "날짜", criteria: "통과 기준", done: "완료", result: "결과",
-      projects: "프로젝트",
+      projects: "프로젝트", kind: "종류", subject: "과목",
     }),
   })),
 };
