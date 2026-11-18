@@ -71,7 +71,7 @@ study = page("공부 체크 시트", "S1",
     "S1 · 세션 4개 · 모자라면 2장")
 
 # ---------- 기상 시트 (W1) ----------
-STN = ["RKPK 김해","RKSI 인천","RKSS 김포","RKSO 오산","RKPC 제주","RKJB 무안"]
+STN = ["RKPS 사천","RKPK 김해","RKPC 제주","RKTU 청주","RKSI 인천","RKSS 김포"]
 WD = ["N","NE","E","SE","S","SW","W","NW","무풍","변동"]
 WS = ["0-2","3-6","7-10","11-15","16-20","21+"]
 VIS = ["<1","1-2","2-5","5-8","8-10","10+"]
@@ -101,7 +101,48 @@ wx = page("기상 훈련 시트", "W1",
     "관측은 창밖을 보고 바로. 섀도 TAF는 공식 TAF를 보기 전에. 매일 밤 실제 METAR와 자동 비교해서 적중·오차를 노션에 기록함.",
     metar_block(1) + metar_block(2) + taf_block(), "W1 · METAR 2 + TAF 1")
 
-html = f'<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>{CSS}</style></head><body>{study}{wx}</body></html>'
+# ---------- 시험·수행 시트 (E1) ----------
+ESUBJ = ["국어A","국어B","국어C","수학","영어A","영어B","영어C","사회A","사회B","과학A","과학B","기상","항공법규","기타"]
+def exam_block(n):
+    return f'''<div class="blk"><h3><span>기록 {n}</span><span style="font-weight:500;font-size:6.8pt">점수 나온 날 칠하기 · 안 쓴 칸은 비워두기</span></h3>
+{date_line()}
+{line("과목", ESUBJ)}
+{line("종류", ["중간","기말","수행","형성","모의"], "|", ("수행 몇 번째", ["1","2","3","4"]))}
+{line("점수", ("백", ["0","1","2","3","4"]), ("십", D10), ("일", D10))}
+{line("소수·만점", ("소수", [".0",".2",".4",".5",".6",".8"]), "|", ("만점", ["10","20","30","50","100","200","300","400"]))}
+{line("평균", ("알면 십", D10), ("일", D10))}
+{line("등수", ("범위", ["통제과","전교","반"]), "|", ("백", ["0","1"]), ("십", D10), ("일", D10))}
+</div>'''
+exam = page("시험·수행 기록 시트", "E1",
+    "점수·등수 받은 날 칠해. 수행은 몇 번째 수행인지(그 과목에서 1, 2…)도. 평균은 알면 칠하기. 노션 마일스톤에 같은 과목 시험·수행이 있으면 자동으로 완료 체크·결과 입력됨.",
+    "".join(exam_block(i) for i in range(1, 5)), "E1 · 4건")
+
+# ---------- 섀도 TAF 심층·일기도 채점 시트 (T1) ----------
+TSTN = ["RKPS 사천","RKPK 김해","RKPC 제주","RKTU 청주","기타"]
+CAUSE = ["타이밍","강도","모델 과신","지형","기단","안정도","변화군 형식","로컬 패턴"]
+OX = ["맞음","틀림"]
+def deep_block(n):
+    return f'''<div class="blk"><h3><span>섀도 TAF 채점 {n}</span><span style="font-weight:500;font-size:6.8pt">유효기간 끝난 뒤 실제 METAR랑 맞춰 보고 칠하기</span></h3>
+{date_line()}
+{line("TAF", ("지점", TSTN), "|", ("시작 시(KST)", ["0","3","6","9","12","15","18","21"]))}
+{line("적중", ("바람", OX), "|", ("시정", OX), "|", ("운고", OX), "|", ("현천", OX))}
+{line("틀린 원인", CAUSE)}
+{line("열어 본 것", ["일기도","Skew-T","위성","레이더","모델 비교"], "|", ("심층", ["완료"]))}
+{line("걸린 시간", ("십분", ["0","1","2","3","4","5","6","7","8","9"]))}
+</div>'''
+def chart_block():
+    G = ["맞음","근접","틀림"]
+    return f'''<div class="blk"><h3><span>지상일기도 손 분석 채점</span><span style="font-weight:500;font-size:6.8pt">「정답」 탭(같은 시각 기상청 분석일기도)과 비교</span></h3>
+{date_line()}
+{line("시각", ("KST", ["09시","15시","21시","03시"]), "|", ("걸린 시간 십분", ["1","2","3","4","5","6"]))}
+{line("등압선", ("모양·간격", ["상","중","하"]), "|", ("고기압 중심", G))}
+{line("저기압", ("중심", G), "|", ("전선", ["맞음","일부","놓침","없는데 그림"]))}
+</div>'''
+deep = page("섀도 TAF 채점 · 일기도 채점 시트", "T1",
+    "W1에 칠한 섀도 TAF를 나중에 채점하는 시트. 같은 날짜·지점의 TAF 기록에 심층·틀린 원인이 붙음. 「심층 완료」는 일기도·Skew-T 등 열어서 원인까지 분석했을 때만.",
+    deep_block(1) + deep_block(2) + deep_block(3) + chart_block(), "T1 · TAF 3 + 일기도 1")
+
+html = f'<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>{CSS}</style></head><body>{study}{wx}{exam}{deep}</body></html>'
 (OUT / "sheets.html").write_text(html, encoding="utf-8")
 
 from playwright.sync_api import sync_playwright
