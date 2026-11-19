@@ -20,3 +20,8 @@
 - 체크 시트: `sheets/make_sheets.py` → `site/sheets.pdf` (S1 공부, W1 기상 훈련, E1 시험·수행, T1 섀도 TAF·일기도 채점)
 - 시트·사진·녹음을 구글 드라이브 「기록함」에 올리면 매일 22:50 Claude 예약 작업이 판독해 노션 「기록」에 입력
 - `scripts/verify-wx.mjs`: METAR/TAF 기록을 aviationweather.gov 실제 METAR와 비교해 채점 → `data/verify.json`
+
+## 오늘의 할일 탭
+- 상단 탭 「오늘의 할일」(주소 끝 `#todo`) — 토익스피킹(12/5, 예비 12/13) + 2학기 기말(12/31) 통합 일정
+- 일정 원본: `scripts/make_plan.py` → `python scripts/make_plan.py` 로 `site/plan.json` 재생성
+- 체크 표시는 브라우저(localStorage)에 저장 — 기기마다 따로

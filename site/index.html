@@ -169,6 +169,47 @@ section{margin-top:16px}
 .print:hover{background:var(--accent-soft)}
 footer{margin-top:32px;color:var(--ink-3);font-size:12.5px;text-align:center}
 footer a{color:inherit}
+/* 탭 */
+.tabs{display:inline-flex;gap:4px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;margin-bottom:20px}
+.tabs button{font:inherit;font-size:14px;font-weight:600;padding:8px 18px;border-radius:999px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
+/* 오늘의 할일 */
+.td-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.td-date{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.td-note{color:var(--ink-2);font-size:14px;margin-top:4px}
+.td-nav{display:flex;gap:6px}
+.td-nav button{font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.td-nav button:hover{background:var(--line-2)}
+.td-dd{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.td-dd span{font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.td-bar{height:8px;border-radius:99px;background:var(--track);margin-top:16px;overflow:hidden}
+.td-bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .25s}
+.td-prog{font-size:12.5px;color:var(--ink-3);margin-top:6px}
+.td-list{list-style:none;padding:0;margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.td-item{display:grid;grid-template-columns:22px 92px 1fr;gap:12px;align-items:start;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;cursor:pointer}
+.td-item.now{background:var(--accent-soft);border-color:var(--accent);border-left-color:var(--c)}
+.td-item.done{opacity:.5}
+.td-item.done .tt{text-decoration:line-through}
+.td-item input{width:18px;height:18px;margin-top:2px;accent-color:var(--ok);cursor:pointer}
+.td-item .tm{font-size:13px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;padding-top:1px}
+.td-item .tg{display:inline-block;font-size:11px;font-weight:700;color:var(--c);margin-right:6px}
+.td-item .tt{font-size:15px;font-weight:600}
+.td-item .dt{font-size:13px;color:var(--ink-2);margin-top:3px}
+.td-empty{color:var(--ink-3);font-size:14px;padding:20px 0}
+@media (max-width:560px){.td-item{grid-template-columns:22px 1fr}.td-item .tm{grid-column:2}.td-item .bd{grid-column:2}}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:14px}
+.wk button{font:inherit;text-align:left;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer;min-width:0}
+.wk button[aria-current="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.wk .d{font-size:12px;color:var(--ink-3)}
+.wk .h{font-size:17px;font-weight:700;margin-top:2px}
+.wk .p{height:4px;border-radius:9px;background:var(--track);margin-top:6px;overflow:hidden}
+.wk .p i{display:block;height:100%;background:var(--ok)}
+.wk .dots{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap}
+.wk .dots i{width:6px;height:6px;border-radius:50%;background:var(--c)}
+@media (max-width:640px){.wk{grid-template-columns:repeat(4,1fr)}}
+.sum{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.sum span{display:inline-flex;align-items:center;gap:6px}
+.sum i{width:9px;height:9px;border-radius:3px;background:var(--c)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -185,6 +226,41 @@ footer a{color:inherit}
     </div>
   </header>
 
+  <nav class="tabs" role="tablist" aria-label="보기">
+    <button role="tab" id="tab-dash" aria-controls="view-dash" aria-selected="true" data-view="dash">대시보드</button>
+    <button role="tab" id="tab-todo" aria-controls="view-todo" aria-selected="false" data-view="todo">오늘의 할일</button>
+  </nav>
+
+  <div id="view-todo" role="tabpanel" aria-labelledby="tab-todo" hidden>
+    <section class="card" style="margin-top:0">
+      <div class="td-head">
+        <div>
+          <div class="td-date" id="td-date">—</div>
+          <div class="td-note" id="td-note"></div>
+        </div>
+        <div class="td-nav">
+          <button id="td-prev" aria-label="전날">‹ 전날</button>
+          <button id="td-today">오늘</button>
+          <button id="td-next" aria-label="다음날">다음날 ›</button>
+        </div>
+      </div>
+      <div class="td-dd" id="td-dd"></div>
+      <div class="td-bar"><i id="td-bar"></i></div>
+      <div class="td-prog" id="td-prog"></div>
+      <ul class="td-list" id="td-list"></ul>
+    </section>
+    <section class="card">
+      <h2>이번 주 <small id="wk-sub"></small></h2>
+      <div class="wk" id="wk"></div>
+      <div class="sum" id="wk-sum"></div>
+    </section>
+    <section class="card">
+      <h2>전체 기간 과목별 시간 <small id="all-sub"></small></h2>
+      <div class="sum" id="all-sum"></div>
+    </section>
+  </div>
+
+  <div id="view-dash" role="tabpanel" aria-labelledby="tab-dash">
   <div class="grid top">
     <div class="card hero" id="hero">
       <div class="lbl">다음 관문</div>
@@ -259,6 +335,7 @@ footer a{color:inherit}
     <h2>최근 기록 <small>노션 「기록」</small></h2>
     <ul class="logs" id="logs"></ul>
   </section>
+  </div>
 
   <footer>시트 칠하고 사진 → 드라이브 「기록함」 · 매일 22:50 자동 정리 · 매시간 갱신 · <a href="sheets.pdf">체크 시트 PDF</a> · <a data-fresh href="today.pdf">오늘의 출력 (매일 09시 관측 기준)</a></footer>
 </div>
@@ -628,6 +705,105 @@ function drawDays(L, t, byId) {
   add("polyline", { points: pts, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", "pointer-events": "none" });
   box.prepend(svg);
 }
+</script>
+<script>
+// ── 탭 ──
+(() => {
+  const btns = document.querySelectorAll(".tabs button");
+  const go = (v, push) => {
+    for (const b of btns) b.setAttribute("aria-selected", String(b.dataset.view === v));
+    document.getElementById("view-dash").hidden = v !== "dash";
+    document.getElementById("view-todo").hidden = v !== "todo";
+    if (push) history.replaceState(null, "", v === "todo" ? "#todo" : location.pathname);
+  };
+  for (const b of btns) b.onclick = () => go(b.dataset.view, true);
+  go(location.hash === "#todo" ? "todo" : "dash", false);
+})();
+
+// ── 오늘의 할일 (site/plan.json, 체크는 이 브라우저에 저장) ──
+fetch("plan.json?" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((P) => {
+  if (!P) { document.getElementById("td-list").innerHTML = '<li class="td-empty">plan.json이 없습니다</li>'; return; }
+  const TAGC = { "토스":"#ee46bc","영어":"#c11574","수학":"var(--a-수학)","국어":"#d6453d","사회":"#f79009","항공법규":"#475467","과학":"#7a5af8","기상학":"var(--a-기상학)","시험":"var(--ink)","할일":"var(--ink-3)" };
+  const col = (t) => TAGC[t] || "var(--ink-3)";
+  const keys = Object.keys(P.days).sort();
+  const mins = (t) => { const [h, m] = t.split(":"); return +h * 60 + +m; };
+  const dur = (x) => Math.max(0, mins(x.end) - mins(x.start));
+  const load = (k) => { try { return JSON.parse(localStorage.getItem("todo:" + k) || "[]"); } catch { return []; } };
+  const save = (k, a) => { try { localStorage.setItem("todo:" + k, JSON.stringify(a)); } catch {} };
+  const hm = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}시간 ${r}분` : h ? `${h}시간` : `${r}분`; };
+  const dname = (k) => `${md(k)} (${DOW[new Date(Date.parse(k)).getUTCDay()]})`;
+  const t0 = kstToday();
+  let cur = keys.includes(t0) ? t0 : t0 < keys[0] ? keys[0] : keys[keys.length - 1];
+  try { const s = sessionStorage.getItem("todo-day"); if (s && keys.includes(s)) cur = s; } catch {}
+
+  function render() {
+    try { sessionStorage.setItem("todo-day", cur); } catch {}
+    const D = P.days[cur], done = new Set(load(cur));
+    document.getElementById("td-date").textContent = dname(cur) + (cur === t0 ? " · 오늘" : "");
+    document.getElementById("td-note").textContent = D.note || "";
+    const dd = document.getElementById("td-dd"); dd.replaceChildren();
+    for (const e of P.events) { const n = Math.round((Date.parse(e.date) - Date.parse(cur)) / 864e5); if (n >= 0) dd.append(el("span", { text: `${e.label} ${ddLabel(n)}` })); }
+    const nowM = (() => { const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCHours() * 60 + d.getUTCMinutes(); })();
+    const list = document.getElementById("td-list"); list.replaceChildren();
+    let tot = 0, got = 0;
+    D.blocks.forEach((x, i) => {
+      const m = dur(x); tot += m; if (done.has(i)) got += m;
+      const isNow = cur === t0 && nowM >= mins(x.start) && nowM < mins(x.end);
+      const cb = el("input", { type: "checkbox", "aria-label": x.title });
+      cb.checked = done.has(i);
+      const li = el("li", { class: "td-item" + (done.has(i) ? " done" : "") + (isNow ? " now" : ""), style: `--c:${col(x.tag)}` },
+        cb, el("div", { class: "tm", text: x.start === x.end ? x.start : `${x.start}–${x.end}` }),
+        el("div", { class: "bd" }, el("div", {}, el("span", { class: "tg", text: x.tag }), el("span", { class: "tt", text: x.title })), x.detail ? el("div", { class: "dt", text: x.detail }) : null));
+      const toggle = () => { const a = new Set(load(cur)); a.has(i) ? a.delete(i) : a.add(i); save(cur, [...a]); render(); };
+      cb.onclick = (e) => { e.stopPropagation(); toggle(); };
+      li.onclick = toggle;
+      list.append(li);
+    });
+    if (!D.blocks.length) list.append(el("li", { class: "td-empty", text: "쉬는 날" }));
+    document.getElementById("td-bar").style.width = tot ? (got / tot * 100) + "%" : "0";
+    document.getElementById("td-prog").textContent = `${hm(got)} / ${hm(tot)} 완료 · ${done.size}/${D.blocks.length}개`;
+    const ix = keys.indexOf(cur);
+    document.getElementById("td-prev").disabled = ix <= 0;
+    document.getElementById("td-next").disabled = ix >= keys.length - 1;
+    week();
+  }
+
+  function week() {
+    const d = new Date(Date.parse(cur)), dow = (d.getUTCDay() + 6) % 7;
+    const mon = new Date(Date.parse(cur) - dow * 864e5);
+    const box = document.getElementById("wk"); box.replaceChildren();
+    const agg = {}; let wt = 0;
+    for (let j = 0; j < 7; j++) {
+      const k = new Date(mon.getTime() + j * 864e5).toISOString().slice(0, 10), D = P.days[k];
+      const b = el("button", { "aria-current": String(k === cur) });
+      b.append(el("div", { class: "d", text: `${md(k)} ${DOW[(j + 1) % 7]}` }));
+      if (D) {
+        const tot = D.blocks.reduce((s, x) => s + dur(x), 0), dn = new Set(load(k));
+        const got = D.blocks.reduce((s, x, i) => s + (dn.has(i) ? dur(x) : 0), 0);
+        wt += tot; for (const x of D.blocks) agg[x.tag] = (agg[x.tag] || 0) + dur(x);
+        const tags = [...new Set(D.blocks.map((x) => x.tag))];
+        b.append(el("div", { class: "h", text: (Math.round(tot / 6) / 10) + "h" }),
+          el("div", { class: "p" }, el("i", { style: `width:${tot ? got / tot * 100 : 0}%` })),
+          el("div", { class: "dots" }, tags.map((t) => el("i", { style: `--c:${col(t)}`, title: t }))));
+        b.onclick = () => { cur = k; render(); };
+      } else { b.disabled = true; b.append(el("div", { class: "h", text: "—" })); }
+      box.append(b);
+    }
+    document.getElementById("wk-sub").textContent = `합계 ${hm(wt)}`;
+    sumInto("wk-sum", agg);
+  }
+  function sumInto(id, agg) {
+    const box = document.getElementById(id); box.replaceChildren();
+    Object.entries(agg).sort((a, b) => b[1] - a[1]).forEach(([t, m]) => box.append(el("span", { style: `--c:${col(t)}` }, el("i"), `${t} ${Math.round(m / 6) / 10}h`)));
+  }
+  const all = {}; for (const k of keys) for (const x of P.days[k].blocks) all[x.tag] = (all[x.tag] || 0) + dur(x);
+  sumInto("all-sum", all);
+  document.getElementById("all-sub").textContent = `${md(keys[0])} – ${md(keys[keys.length - 1])}`;
+  document.getElementById("td-prev").onclick = () => { const i = keys.indexOf(cur); if (i > 0) { cur = keys[i - 1]; render(); } };
+  document.getElementById("td-next").onclick = () => { const i = keys.indexOf(cur); if (i < keys.length - 1) { cur = keys[i + 1]; render(); } };
+  document.getElementById("td-today").onclick = () => { cur = keys.includes(t0) ? t0 : keys[0]; render(); };
+  render();
+});
 </script>
 </body>
 </html>
