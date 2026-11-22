@@ -196,6 +196,7 @@ footer a{color:inherit}
 .td-item .tt{font-size:15px;font-weight:600}
 .td-item .dt{font-size:13px;color:var(--ink-2);margin-top:3px}
 .td-empty{color:var(--ink-3);font-size:14px;padding:20px 0}
+.td-alt{font:inherit;font-size:12.5px;font-weight:600;padding:3px 10px;margin-left:4px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
 @media (max-width:560px){.td-item{grid-template-columns:22px 1fr}.td-item .tm{grid-column:2}.td-item .bd{grid-column:2}}
 .wk{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:14px}
 .wk button{font:inherit;text-align:left;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer;min-width:0}
@@ -728,8 +729,13 @@ fetch("plan.json?" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((P) 
   const keys = Object.keys(P.days).sort();
   const mins = (t) => { const [h, m] = t.split(":"); return +h * 60 + +m; };
   const dur = (x) => Math.max(0, mins(x.end) - mins(x.start));
-  const load = (k) => { try { return JSON.parse(localStorage.getItem("todo:" + k) || "[]"); } catch { return []; } };
-  const save = (k, a) => { try { localStorage.setItem("todo:" + k, JSON.stringify(a)); } catch {} };
+  // 외박/잔류 전환: alt가 있는 날은 버튼으로 바꿔 보기 (이 브라우저에 기억)
+  const useAlt = (k) => { try { return localStorage.getItem("alt:" + k) === "1"; } catch { return false; } };
+  const setAlt = (k, v) => { try { v ? localStorage.setItem("alt:" + k, "1") : localStorage.removeItem("alt:" + k); } catch {} };
+  const day = (k) => { const D = P.days[k]; return D && D.alt && useAlt(k) ? D.alt : D; };
+  const sk = (k) => k + (P.days[k] && P.days[k].alt && useAlt(k) ? ":alt" : "");
+  const load = (k) => { try { return JSON.parse(localStorage.getItem("todo:" + sk(k)) || "[]"); } catch { return []; } };
+  const save = (k, a) => { try { localStorage.setItem("todo:" + sk(k), JSON.stringify(a)); } catch {} };
   const hm = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}시간 ${r}분` : h ? `${h}시간` : `${r}분`; };
   const dname = (k) => `${md(k)} (${DOW[new Date(Date.parse(k)).getUTCDay()]})`;
   const t0 = kstToday();
@@ -738,9 +744,15 @@ fetch("plan.json?" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((P) 
 
   function render() {
     try { sessionStorage.setItem("todo-day", cur); } catch {}
-    const D = P.days[cur], done = new Set(load(cur));
+    const D = day(cur), done = new Set(load(cur)), RAW = P.days[cur];
     document.getElementById("td-date").textContent = dname(cur) + (cur === t0 ? " · 오늘" : "");
-    document.getElementById("td-note").textContent = D.note || "";
+    const noteEl = document.getElementById("td-note"); noteEl.replaceChildren(D.note || "");
+    if (RAW.alt) {
+      const on = useAlt(cur);
+      const btn = el("button", { class: "td-alt", type: "button", text: on ? "원래 일정으로" : RAW.alt.label + " →" });
+      btn.onclick = () => { setAlt(cur, !on); render(); };
+      noteEl.append(" ", btn);
+    }
     const dd = document.getElementById("td-dd"); dd.replaceChildren();
     for (const e of P.events) { const n = Math.round((Date.parse(e.date) - Date.parse(cur)) / 864e5); if (n >= 0) dd.append(el("span", { text: `${e.label} ${ddLabel(n)}` })); }
     const nowM = (() => { const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCHours() * 60 + d.getUTCMinutes(); })();
@@ -774,7 +786,7 @@ fetch("plan.json?" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((P) 
     const box = document.getElementById("wk"); box.replaceChildren();
     const agg = {}; let wt = 0;
     for (let j = 0; j < 7; j++) {
-      const k = new Date(mon.getTime() + j * 864e5).toISOString().slice(0, 10), D = P.days[k];
+      const k = new Date(mon.getTime() + j * 864e5).toISOString().slice(0, 10), D = P.days[k] && day(k);
       const b = el("button", { "aria-current": String(k === cur) });
       b.append(el("div", { class: "d", text: `${md(k)} ${DOW[(j + 1) % 7]}` }));
       if (D) {
@@ -796,7 +808,7 @@ fetch("plan.json?" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((P) 
     const box = document.getElementById(id); box.replaceChildren();
     Object.entries(agg).sort((a, b) => b[1] - a[1]).forEach(([t, m]) => box.append(el("span", { style: `--c:${col(t)}` }, el("i"), `${t} ${Math.round(m / 6) / 10}h`)));
   }
-  const all = {}; for (const k of keys) for (const x of P.days[k].blocks) all[x.tag] = (all[x.tag] || 0) + dur(x);
+  const all = {}; for (const k of keys) for (const x of day(k).blocks) all[x.tag] = (all[x.tag] || 0) + dur(x);
   sumInto("all-sum", all);
   document.getElementById("all-sub").textContent = `${md(keys[0])} – ${md(keys[keys.length - 1])}`;
   document.getElementById("td-prev").onclick = () => { const i = keys.indexOf(cur); if (i > 0) { cur = keys[i - 1]; render(); } };

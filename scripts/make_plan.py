@@ -218,6 +218,84 @@ def note(d):
     return f"기말 D-{(FINAL - d).days}"
 
 
+# ── 외박 주말 대체 일정 ─────────────────────────────────────────────
+# 기본은 주말 잔류. 외박을 쓰면 금요일 16시 출발 → 일요일 오후 복귀.
+# 대시보드에서 그 주말 「외박」을 켜면 금·일은 아래 alt 일정으로 바뀐다(토요일은 집에서 같은 일정).
+HOLIDAYS = {date(2026, 12, 25)}
+# 외박 쓰기로 한 주말 (금요일 날짜): 11월 4주차, 12월 2주차
+OUTINGS = {date(2026, 11, 27), date(2026, 12, 11)}
+
+
+def outing_weekend(d):
+    fri = d - timedelta(days=(d.weekday() - 4) % 7)
+    return fri in OUTINGS
+
+
+def _m(t):
+    h, mi = map(int, t.split(":"))
+    return h * 60 + mi
+
+
+def _t(m):
+    return f"{m // 60:02d}:{m % 60:02d}"
+
+
+def reflow(blocks, windows):
+    """블록 순서·길이를 유지하며 가능한 시간 창에 다시 배치. 남는 건 dropped로."""
+    out, dropped = [], []
+    wins = [[_m(a), _m(c)] for a, c in windows]
+    wi = 0
+    for x in blocks:
+        if x["tag"] == "시험":  # 시험은 시각 고정
+            out.append(x)
+            for w in wins:
+                if w[0] < _m(x["end"]) and w[1] > _m(x["start"]):
+                    w[0] = max(w[0], _m(x["end"]))
+            continue
+        need = _m(x["end"]) - _m(x["start"])
+        part = 0
+        while need > 0 and wi < len(wins):
+            a, c = wins[wi]
+            room = c - a
+            if room < 15:
+                wi += 1
+                continue
+            use = min(need, room)
+            if use < need and use < 30 and part == 0:  # 너무 짧게 쪼개지 말고 다음 창으로
+                wi += 1
+                continue
+            y = dict(x, start=_t(a), end=_t(a + use))
+            if part:
+                y["title"] = x["title"] + " (이어서)"
+            out.append(y)
+            part += 1
+            wins[wi][0] = a + use + (10 if use < need else 0)
+            need -= use
+        if need > 0 and part:
+            out[-1]["title"] += " (일부만)"
+        elif need > 0:
+            dropped.append(x["title"])
+    return out, dropped
+
+
+def outing_alt(d, n, blocks):
+    wd = d.weekday()
+    if d in HOLIDAYS or wd == 5:
+        return None
+    if wd == 4:  # 금: 수업 후 16시 출발, 집에서 19시부터
+        alt, dr = reflow(blocks, [("19:00", "22:30")])
+        note = "외박 — 16시 출발, 집에서 19~22:30"
+    elif wd == 6:  # 일: 오전 집, 오후 이동·복귀, 저녁은 기숙사 일과
+        st = min(["09:00"] + [x["start"] for x in blocks if x["start"] < "09:00"])
+        alt, dr = reflow(blocks, [(st, "12:00"), ("18:15", "21:00"), ("21:45", "23:00")])
+        note = "외박 복귀일 — 오전 집, 오후 이동, 저녁 기숙사"
+    else:
+        return None
+    if dr:
+        note += " · 시간 부족으로 뺌: " + ", ".join(dr)
+    return {"note": f"{n} · {note}", "blocks": alt}
+
+
 days = {}
 i3 = i4 = 0
 d = START
@@ -240,10 +318,16 @@ while d <= END:
             if d == date(2026, 12, 30):
                 n += " · 시험 첫날 과목은 오늘 밤 블록을 그 과목 백지 테스트로 바꾸기"
     days[d.isoformat()] = {"note": n, "blocks": blocks}
+    alt = outing_alt(d, n, blocks)
+    if alt and outing_weekend(d):  # 외박 주말: 외박 일정이 기본, 잔류는 대안
+        days[d.isoformat()] = dict(alt, alt={"note": n + " · 잔류", "blocks": blocks, "label": "잔류하면"})
+    elif alt:
+        days[d.isoformat()]["alt"] = dict(alt, label="외박하면")
     d += timedelta(days=1)
 
 plan = {
     "title": "토스 + 기말 통합 플랜",
+    "outing": "기본은 주말 잔류. 외박 켜면 금(16시 출발)·일(오후 복귀) 일정이 alt로 바뀜",
     "events": [
         {"date": TOEIC.isoformat(), "label": "토익스피킹"},
         {"date": RESULT.isoformat(), "label": "토스 성적"},
