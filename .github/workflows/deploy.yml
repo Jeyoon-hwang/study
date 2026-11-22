@@ -57,6 +57,15 @@ jobs:
           sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
           pip install -q -r scripts/requirements.txt
           python scripts/daily_wx.py site/today.pdf
+      - name: TAF 브리핑 (존데·위성·레이더·모델)
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          KMA_KEY: ${{ secrets.KMA_KEY }}
+        run: |
+          sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
+          pip install -q -r scripts/requirements.txt
+          python scripts/brief.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

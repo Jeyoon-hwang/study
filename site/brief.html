@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TAF 브리핑</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#0d1117; --ink-2:#4b5563; --ink-3:#8b93a1;
+  --line:#e6e8ec; --line-2:#f0f1f4; --accent:#2f6fed; --accent-soft:#e8f0ff;
+  --ok:#14915f; --warn:#c27c0e; --bad:#d6453d; --track:#eef0f3; --guide:#fbfaf6; --guide-line:#ece6d6;
+  --r:14px; --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0b0d10; --panel:#13161b; --ink:#eef1f5; --ink-2:#a8b0bd; --ink-3:#6b7380;
+  --line:#22262d; --line-2:#1a1d23; --accent:#6c9bff; --accent-soft:#17233d; --track:#22262d;
+  --ok:#3ccb8f; --warn:#f0b445; --bad:#ff7b72; --guide:#17191d; --guide-line:#2a2d33; --shadow:none;
+}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Pretendard Variable",Pretendard,system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.55}
+a{color:var(--accent)}
+.wrap{max-width:1240px;margin:0 auto;padding:36px 24px 64px}
+@media (max-width:640px){.wrap{padding:22px 16px 48px}}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--ink-3);font-size:14px;margin-top:4px}
+.back{font-size:14px;text-decoration:none}
+h2.step{font-size:13px;font-weight:650;color:var(--ink-3);letter-spacing:.02em;margin:34px 0 10px;display:flex;gap:8px;align-items:center}
+h2.step b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line-2)}
+.card-h h3{font-size:15px;font-weight:650}
+.card-h small{color:var(--ink-3);font-size:12.5px}
+.prod{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.prod .media{padding:14px;min-width:0}
+.prod .media img{width:100%;height:auto;display:block;border-radius:8px;background:var(--track)}
+.guide{background:var(--guide);border-left:1px solid var(--guide-line);padding:16px 18px;font-size:13.5px;color:var(--ink-2)}
+.guide summary{font-weight:650;color:var(--ink);cursor:pointer;list-style:none;font-size:13.5px}
+.guide summary::-webkit-details-marker{display:none}
+.guide summary::before{content:"📖 "}
+.guide h4{font-size:13px;color:var(--ink);margin:12px 0 4px}
+.guide ul{padding-left:18px;margin:4px 0}
+.guide li{margin:3px 0}
+.guide .taf{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);color:var(--ink)}
+.guide .taf::before{content:"TAF에 쓰는 법 — ";font-weight:650}
+@media (max-width:860px){
+  .prod{grid-template-columns:1fr}
+  .guide{border-left:0;border-top:1px solid var(--guide-line)}
+}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ap-tabs{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;margin:0 0 4px}
+.ap-tabs button{font-size:14px;padding:8px 16px}
+pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.metar{font-size:12.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:0;color:var(--ink)}
+.metar .old{color:var(--ink-3)}
+.hints{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hint{font-size:12.5px;padding:5px 10px;border-radius:8px;background:var(--track);color:var(--ink-2)}
+.hint.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--ink)}
+.hint.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--ink)}
+.idx{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:10px}
+.idx div{background:var(--track);border-radius:8px;padding:6px 10px;font-size:12.5px}
+.idx b{display:block;font-size:11px;color:var(--ink-3);font-weight:500}
+.reveal{font:inherit;font-size:14px;padding:10px 16px;border-radius:10px;border:1px dashed var(--ink-3);background:transparent;color:var(--ink);cursor:pointer;width:100%}
+.checklist{padding:16px 20px 18px;font-size:14px}
+.checklist ol{padding-left:20px}
+.checklist li{margin:6px 0}
+.checklist li span{color:var(--ink-3);font-size:13px}
+.empty{color:var(--ink-3);font-size:13.5px;padding:18px}
+.loopbtn{font:inherit;font-size:12.5px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer}
+footer{margin-top:40px;color:var(--ink-3);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>TAF 브리핑</h1>
+    <div class="sub" id="upd">불러오는 중…</div>
+  </div>
+  <a class="back" href="./">← 대시보드</a>
+</header>
+
+<div class="card"><div class="checklist">
+  <h3 style="font-size:15px;margin-bottom:6px">섀도 TAF 순서 (위에서 아래로 내려가며 보기)</h3>
+  <ol>
+    <li><b>큰 그림</b> — 300→500→700→850→지상 일기도. <span>시스템이 언제, 어디로 지나가나</span></li>
+    <li><b>지금 하늘</b> — 위성·레이더. <span>구름·강수가 실제로 어디 있고 몇 km/h로 오나</span></li>
+    <li><b>공항 실황</b> — METAR 12시간. <span>추세(기압·바람·이슬점차)와 이미 일어난 일</span></li>
+    <li><b>대기 구조</b> — 라디오존데 Skew-T. <span>운저·역전층·0℃고도·뇌우 가능성</span></li>
+    <li><b>모델 비교</b> — 시각별 변화와 모델끼리 얼마나 다른가. <span>같으면 FM/BECMG, 다르면 TEMPO/PROB</span></li>
+    <li><b>내 TAF 작성</b> → 맨 아래에서 공식 TAF 열고 비교 → T1 시트에 채점</li>
+  </ol>
+</div></div>
+
+<h2 class="step"><b>1</b>큰 그림 — 일기도 (300hPa → 지상)</h2>
+<div class="card" id="charts"></div>
+
+<h2 class="step"><b>2</b>지금 하늘 — 천리안 2A 위성</h2>
+<div class="card" id="sat"></div>
+
+<h2 class="step"><b>2</b>지금 하늘 — 레이더</h2>
+<div class="card" id="radar"></div>
+
+<div id="sigmet"></div>
+
+<div class="ap-tabs tabs" id="aptabs"></div>
+<div id="ap"></div>
+
+<footer>매시간 자동 갱신 · 일기도 기상청 · 위성 천리안 2A(기상청 날씨누리) · 레이더 기상청 합성 · 라디오존데 기상청 API허브(GTS TEMP) · 모델 Open-Meteo · METAR/TAF/SIGMET aviationweather.gov</footer>
+</div>
+
+<script>
+const G = {
+  up30: `<h4>무엇</h4><ul><li>약 9km 고도. 굵은 선=등고선, 색칠/점선=제트(강풍대) 영역.</li></ul>
+<h4>읽는 법</h4><ul><li>등고선이 촘촘한 띠 = <b>제트기류</b>. 한국 위 제트 위치를 먼저 찾는다.</li>
+<li>제트 입구 오른쪽·출구 왼쪽 아래에서 상승 → 저기압 발달.</li>
+<li>제트 근처, 등고선이 급히 휘는 곳 = 난류(CAT) 가능.</li></ul>
+<div class="taf">TAF 자체엔 안 들어가지만 "저기압이 발달할 판인가"를 정한다. 발달 판이면 아래 층들에서 비·바람을 더 세게 잡는다.</div>`,
+  up50: `<h4>무엇</h4><ul><li>약 5.5km. 등고선(m)과 기온. 대기 흐름의 "운전대".</li></ul>
+<h4>읽는 법</h4><ul><li><b>골(trough)</b> = 등고선이 남쪽으로 처진 곳, <b>마루(ridge)</b> = 북쪽으로 솟은 곳.</li>
+<li>골 <b>앞쪽(동쪽)</b>에서 상승 → 구름·비. 골 <b>뒤쪽</b>은 하강 → 맑고 바람.</li>
+<li>-30℃ 이하 찬 골이 오면 대기 불안정 → 소나기·뇌우·눈 소나기.</li>
+<li>골이 하루 몇 경도 움직이나 = 날씨가 언제 바뀌나.</li></ul>
+<div class="taf">골이 공항 위를 지나는 시각 ≈ 날씨 바뀌는 시각. FM/BECMG 시각을 여기서 처음 대략 잡는다.</div>`,
+  up70: `<h4>무엇</h4><ul><li>약 3km. 습윤 영역(T-Td 작음)이 표시된다.</li></ul>
+<h4>읽는 법</h4><ul><li>기온-이슬점 차 ≤3℃ 영역 = 중층까지 젖어 있음 → 실제 비 구름.</li>
+<li>건조한 영역이 들어오면 중층운이 걷힌다.</li></ul>
+<div class="taf">습윤 영역이 공항에 걸리는 시간대 = 비(RA)/눈(SN) 넣을 후보 시간대. BKN/OVC 중층운(080~150).</div>`,
+  up85: `<h4>무엇</h4><ul><li>약 1.5km. 등온선(점선)과 바람. <b>온도 이류</b>를 보는 층.</li></ul>
+<h4>읽는 법</h4><ul><li>바람이 등온선을 <b>찬 쪽 → 따뜻한 쪽</b>으로 가로지르면 한랭이류(추워짐), 반대면 온난이류.</li>
+<li>온난이류 = 상승 → 층운·비. 한랭이류 = 맑아지지만 바람 강해지고 서해 눈구름.</li>
+<li><b>0℃선</b>이 공항보다 남쪽이면 강수는 눈 쪽, <b>-6℃ 이하</b>면 거의 눈.</li>
+<li>바람이 30kt 이상이면 지상 돌풍(G) 후보.</li></ul>
+<div class="taf">RA인지 SN/RASN인지, 돌풍 G를 넣을지 여기서 결정.</div>`,
+  sfc: `<h4>무엇</h4><ul><li>지상 등압선(4hPa 간격), 고·저기압, 전선.</li></ul>
+<h4>읽는 법</h4><ul><li>등압선 간격이 좁을수록 바람 강함. 바람은 등압선을 따라 불되 저기압 쪽으로 약간 비스듬히.</li>
+<li>공항 근처 등압선 방향 → <b>풍향</b>, 간격 → <b>풍속</b>.</li>
+<li>전선 통과 전: 남~남서풍·흐림·비 / 통과 후: 북서풍·기온↓·맑아짐.</li>
+<li>고기압 중심 근처 + 바람 약함 + 맑은 밤 = 복사안개 위험.</li></ul>
+<div class="taf">풍향·풍속 기본값(첫 줄 바람)과 전선 통과 시각(FM)을 여기서 정한다.</div>`,
+  "rgb-s-daynight": `<h4>무엇</h4><ul><li>낮엔 실제 색에 가깝게, 밤엔 적외 기반으로 합성. 하루 종일 같은 화면으로 구름 흐름 보기.</li></ul>
+<h4>읽는 법</h4><ul><li>밤: <b>밝은 흰/하늘색</b> = 높고 찬 구름, <b>분홍/연한 색</b> = 낮은 구름·안개 쪽.</li>
+<li>바다 위 줄무늬 구름(서해·동해) = 찬 공기가 따뜻한 바다 위를 지날 때 생기는 <b>눈구름 줄</b>.</li>
+<li>구름 가장자리가 어디로 움직이는지 이전 시각과 비교.</li></ul>
+<div class="taf">구름 덩어리가 공항까지 오는 시간 = 운량(SCT→BKN) 바뀌는 시각.</div>`,
+  "rgb-cs": `<h4>무엇</h4><ul><li>바다=파랑, 땅=초록, 구름=흰색으로 칠한 컬러 영상(CS). 밤에도 같은 색.</li></ul>
+<h4>읽는 법</h4><ul><li>구름이 <b>어디까지</b> 덮였는지, 공항이 맑은 틈에 있는지 한눈에 본다.</li>
+<li>바다 위 작은 흰 점·줄 = 찬 공기가 바다 위를 지나며 생긴 대류(겨울 서해안 눈의 원인).</li>
+<li>흰색이 두껍고 가장자리가 날카로우면 대류운, 얇고 실 같으면 권운.</li></ul>
+<div class="taf">공항과 구름 가장자리 사이 거리·이동 방향 → FEW/SCT에서 BKN으로 바뀌는 시각.</div>`,
+  "rgb-hlc": `<h4>무엇</h4><ul><li>높은 구름과 낮은 구름을 밝기로 나눈 영상(HIGH-LOW CLOUD).</li></ul>
+<h4>읽는 법</h4><ul><li><b>밝은 흰색</b> = 높은 구름(권운·두꺼운 상층운). <b>흐린 회색</b> = 낮은 구름·층적운.</li>
+<li>상층운만 덮인 곳은 하늘은 흐려도 운저가 높다 → 시정·운고 영향 작음.</li>
+<li>회색 하층운이 공항에 걸리면 → 낮은 BKN/OVC 가능.</li></ul>
+<div class="taf">적외에선 상층운에 묻혀 안 보이는 <b>하층운</b>을 여기서 찾는다 → 운고(예: BKN008 vs BKN250) 판단.</div>`,
+  ir105: `<h4>무엇</h4><ul><li>적외 10.5µm = 구름 꼭대기 온도. 밤낮 상관없이 나옴.</li></ul>
+<h4>읽는 법</h4><ul><li><b>밝을수록 차갑다 = 높다</b>. 아주 밝고 둥근 덩어리 = 키 큰 대류운.</li>
+<li>낮은 구름·안개는 지면과 온도가 비슷해서 <b>잘 안 보인다</b> (아래 '안개' 영상으로 보완).</li>
+<li>애니메이션으로 이동 방향·속도, 커지는지(발달) 작아지는지(소멸) 본다.</li></ul>
+<div class="taf">이동 속도 × 거리 = 도착 시각. 덩어리가 커지고 있으면 TEMPO TSRA/SHRA 후보.</div>`,
+  wv063: `<h4>무엇</h4><ul><li>수증기 6.3µm = 상층(약 300~600hPa) 수증기량.</li></ul>
+<h4>읽는 법</h4><ul><li>어두운 띠 = <b>건조 공기 침입</b>(상층 하강). 밝은 = 습함.</li>
+<li>어두운 영역이 소용돌이처럼 감기면 저기압 발달 중.</li>
+<li>500hPa 골 위치를 위성으로 확인하는 용도로 좋다.</li></ul>
+<div class="taf">건조 침입 뒤쪽 → 맑아지고 바람 강해짐. 개선(BECMG ... NSW, SCT) 시각 잡기.</div>`,
+  fog: `<h4>무엇</h4><ul><li>안개/하층운 탐지 영상 (밤에 특히 유용).</li></ul>
+<h4>읽는 법</h4><ul><li>표시된 영역 = 안개·층운 가능 영역. 해 뜨기 전 범위가 넓어지는지 본다.</li>
+<li>해안 안개는 바람 방향 따라 육지로 밀려온다(이류안개).</li></ul>
+<div class="taf">공항 주변에 걸리면 새벽 시간대 TEMPO 0800 BR / 0300 FG BKN002 같은 줄 후보. 해 뜬 뒤 2~3시간 안에 걷히는 경우가 많다.</div>`,
+  radar: `<h4>무엇</h4><ul><li>전국 합성 레이더, 강수 강도(mm/h). 10분 간격, 1시간 애니메이션.</li></ul>
+<h4>읽는 법</h4><ul><li>넓고 고른 에코 = 층운형 비(지속적) / 작고 강한 덩어리 = 소나기·뇌우.</li>
+<li>줄 모양 에코 = 전선·스콜선. 진행 방향 앞쪽이 다음 차례.</li>
+<li>겨울 서해안 점 같은 에코 = 눈 소나기(SHSN).</li>
+<li>주의: 아주 약한 이슬비·안개는 거의 안 잡힌다.</li></ul>
+<div class="taf">첫 6시간 강수 시작·끝 시각은 레이더 외삽이 모델보다 정확하다. 층운형=RA/SN, 덩어리형=SHRA/SHSN/TSRA.</div>`,
+  metar: `<h4>읽는 법 (추세 보기)</h4><ul><li><b>기압(Q)</b>: 3시간에 2hPa 이상 떨어지면 저기압 접근, 오르면 개선.</li>
+<li><b>기온-이슬점 차</b>: 2℃ 이하 + 약한 바람 + 맑은 밤 → 안개 준비.</li>
+<li><b>풍향</b>: 남서→북서로 돌면 한랭전선 통과.</li>
+<li>BECMG/TEMPO를 쓸 일이 이미 실황에 시작됐는지 확인.</li></ul>
+<div class="taf">TAF 첫 줄은 지금 METAR에서 크게 벗어나지 않게. 실황과 다른 첫 줄은 바로 틀린다.</div>`,
+  skewt: `<h4>무엇</h4><ul><li>가장 가까운 라디오존데(풍선)의 실측 연직 구조. 빨강=기온, 초록=이슬점, 점선=지상 공기를 들어 올렸을 때.</li></ul>
+<h4>읽는 법</h4><ul><li><b>빨강·초록이 붙은 층</b> = 포화(구름층). 그 층의 아래끝 = 운저.</li>
+<li><b>LCL 고도</b> ≈ 대류운 운저. 대략 (기온-이슬점)×120m.</li>
+<li><b>역전층</b>(위로 갈수록 따뜻해지는 층): 수증기가 갇혀 층운·박무·연무. 역전 바로 아래가 층운 운정.</li>
+<li><b>0℃ 고도</b>: 낮으면 눈, 비/눈 경계 판단. 0~-15℃ 사이 구름층 = 착빙.</li>
+<li><b>CAPE</b> >500 J/kg, <b>LI</b> < 0 → 뇌우 가능. <b>K 지수</b> 30 이상이면 뇌우 높음.</li>
+<li><b>지상~2000ft 바람 차</b>가 크면(≥20kt) 저층 윈드시어(WS) 후보.</li>
+<li>오른쪽 깃발(바람): 높이 따라 시계방향 회전 = 온난이류, 반시계 = 한랭이류.</li></ul>
+<div class="taf">운저 숫자(BKN030 등), WS020/..., 착빙·TS 여부를 여기서 확정. 관측 시각(00·12Z) 이후 변화는 모델로 보정.</div>`,
+  model: `<h4>무엇</h4><ul><li>여러 수치모델이 이 공항 지점에 대해 예상한 값. KMA LDPS(1.5km, 한국 상세), GDPS, ECMWF, GFS, JMA MSM.</li></ul>
+<h4>읽는 법</h4><ul><li>모델들이 <b>모여 있으면</b> 자신 있게 → FM / BECMG.</li>
+<li><b>퍼져 있으면</b>(시각·세기 다름) → TEMPO 또는 PROB30/40.</li>
+<li>바뀌는 <b>시각</b>을 볼 것: 바람이 확 도는 시각, 하층운이 차는 시각, 강수 시작 시각.</li>
+<li>약점: 안개·낮은 층운·시정은 모델이 자주 틀린다 → 존데 역전층 + 이슬점 차로 보정.</li>
+<li>해상도 높은 LDPS·MSM이 해안·지형 바람에 강하다.</li></ul>
+<div class="taf">BECMG 2306/2308 같은 시간 구간 = 모델들이 변화를 보이는 시각의 범위. 시정 선(5km·1.6km) 아래로 내려가는 모델이 있으면 BR/FG 줄 검토.</div>`,
+};
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const V = "?v=" + Math.floor(Date.now() / 6e5);
+const guide = (k) => `<details class="guide" ${matchMedia("(min-width:861px)").matches ? "open" : ""}><summary>읽는 법 · 활용</summary>${G[k] || ""}</details>`;
+const kstStr = (s) => s ? `${s.slice(4, 6)}/${s.slice(6, 8)} ${s.slice(8, 10)}:${s.slice(10, 12)} KST` : "";
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+function tabbedCard(el, title, items, sub) {
+  if (!items.length) { el.innerHTML = `<div class="card-h"><h3>${title}</h3></div><div class="empty">아직 자료가 없어요 (다음 갱신 때 생겨요)</div>`; return; }
+  const key = "tab:" + el.id;
+  let cur = items.find((x) => x.id === store.get(key))?.id || items[0].id;
+  const draw = () => {
+    const it = items.find((x) => x.id === cur);
+    const loopBtn = it.loop ? `<button class="loopbtn" data-loop>▶ 애니메이션</button>` : "";
+    el.innerHTML = `<div class="card-h"><h3>${title}</h3><div class="tabs">${items.map((x) =>
+      `<button data-id="${x.id}" aria-pressed="${x.id === cur}">${esc(x.name)}</button>`).join("")}</div></div>
+      <div class="prod"><div class="media"><div class="card-h" style="padding:0 0 8px;border:0"><small>${esc(sub(it))}</small>${loopBtn}</div>
+      <a href="${it.file}${V}" target="_blank"><img src="${it.file}${V}" alt="${esc(it.name)}" loading="lazy"></a></div>${guide(it.gk || it.id)}</div>`;
+    el.querySelectorAll("[data-id]").forEach((b) => b.onclick = () => { cur = b.dataset.id; store.set(key, cur); draw(); });
+    const lb = el.querySelector("[data-loop]");
+    if (lb) lb.onclick = () => {
+      const img = el.querySelector(".media img"), on = lb.dataset.on === "1";
+      img.src = (on ? it.file : it.loop) + V; lb.dataset.on = on ? "0" : "1"; lb.textContent = on ? "▶ 애니메이션" : "■ 최신 한 장";
+    };
+  };
+  draw();
+}
+
+// 1. 일기도 (charts.json, 높은 층부터)
+fetch("charts.json" + V).then((r) => r.ok ? r.json() : { charts: [] }).catch(() => ({ charts: [] })).then((C) => {
+  const order = ["up30", "up50", "up70", "up85", "sfc"];
+  const items = order.map((id) => C.charts.find((c) => c.id === id)).filter(Boolean)
+    .map((c) => ({ ...c, name: c.name === "지상" ? "지상" : c.name }));
+  tabbedCard($("#charts"), "기상청 분석 일기도", items, (c) => c.label);
+});
+
+const timeAgo = (iso) => { const h = (Date.now() - new Date(iso)) / 36e5; return h < 1 ? `${Math.round(h * 60)}분 전` : `${h.toFixed(1)}시간 전`; };
+
+fetch("brief/brief.json" + V).then((r) => r.ok ? r.json() : null).catch(() => null).then((B) => {
+  if (!B) { $("#upd").textContent = "브리핑 자료가 아직 없어요 — 다음 매시간 갱신 후에 생겨요."; return; }
+  const u = new Date(B.updated);
+  $("#upd").textContent = `갱신 ${u.toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} (${timeAgo(B.updated)}) · 사천·김해·제주·청주`;
+  tabbedCard($("#sat"), "천리안 2A", B.sat || [], (s) => kstStr(s.tm));
+  const R = B.radar ? [{ id: "radar", name: "합성 레이더", file: B.radar.file, loop: B.radar.loop, tm: B.radar.tm }] : [];
+  tabbedCard($("#radar"), "레이더", R, (r) => kstStr(r.tm));
+  if (B.sigmet && B.sigmet.length) {
+    $("#sigmet").innerHTML = `<div class="card"><div class="card-h"><h3>⚠ 인천 FIR SIGMET ${B.sigmet.length}건</h3><small>뇌우·난류·착빙·화산재 등 위험기상 경보</small></div>
+      <div style="padding:14px 18px"><pre class="metar">${B.sigmet.map((s) => esc(s.raw)).join("\n\n")}</pre></div></div>`;
+  }
+  const aps = B.airports || [];
+  let cur = store.get("ap") && aps.some((a) => a.icao === store.get("ap")) ? store.get("ap") : aps[0]?.icao;
+  const drawTabs = () => {
+    $("#aptabs").innerHTML = aps.map((a) => `<button data-ap="${a.icao}" aria-pressed="${a.icao === cur}">${a.icao} ${a.name}</button>`).join("");
+    $("#aptabs").querySelectorAll("button").forEach((b) => b.onclick = () => { cur = b.dataset.ap; store.set("ap", cur); drawTabs(); drawAp(); });
+  };
+  const drawAp = () => drawAirport(aps.find((a) => a.icao === cur));
+  drawTabs(); drawAp();
+});
+
+function metarHints(list) {
+  const P = (m) => {
+    const tt = /\s(M?\d{2})\/(M?\d{2})\s/.exec(m), q = /\sQ(\d{4})/.exec(m), w = /\s(\d{3}|VRB)(\d{2,3})(G\d{2,3})?KT/.exec(m);
+    const n = (s) => s && (s[0] === "M" ? -+s.slice(1) : +s);
+    return { T: tt && n(tt[1]), Td: tt && n(tt[2]), Q: q && +q[1], ws: w && +w[2] };
+  };
+  const out = [];
+  if (!list.length) return out;
+  const a = P(list[0]);
+  if (a.T != null && a.Td != null) {
+    const sp = a.T - a.Td;
+    out.push({ t: `기온-이슬점 차 ${sp}℃`, c: sp <= 2 ? "bad" : sp <= 4 ? "warn" : "" });
+    if (sp <= 3 && (a.ws ?? 9) <= 5) out.push({ t: "이슬점 차 작고 바람 약함 → 안개·박무 주의", c: "bad" });
+  }
+  const b = list.length > 3 ? P(list[3]) : null;
+  if (a.Q && b && b.Q) {
+    const d = a.Q - b.Q;
+    out.push({ t: `기압 3시간 ${d > 0 ? "+" : ""}${d} hPa`, c: d <= -2 ? "warn" : "" });
+  }
+  return out;
+}
+
+function drawAirport(A) {
+  if (!A) return;
+  const el = $("#ap");
+  const metar = A.metar || [];
+  const hints = metarHints(metar);
+  const S = A.sonde, M = A.model;
+  el.innerHTML = `
+  <h2 class="step"><b>3</b>${A.icao} ${A.name} — 실황 METAR (최근 12시간)</h2>
+  <div class="card"><div class="prod"><div class="media">
+    ${hints.length ? `<div class="hints">${hints.map((h) => `<span class="hint ${h.c}">${esc(h.t)}</span>`).join("")}</div>` : ""}
+    ${metar.length ? `<pre class="metar">${metar.map((m, i) => `<span class="${i > 2 ? "old" : ""}">${esc(m)}</span>`).join("\n")}</pre>`
+      : `<div class="empty" style="padding:4px 0">${A.icao}는 국제 METAR 배포(aviationweather.gov)에 없어요. <a href="https://amo.kma.go.kr" target="_blank">항공기상청</a>에서 확인하거나, 가장 가까운 ${A.icao === "RKPS" ? "RKPK 김해" : "공항"} METAR로 추세를 보세요.</div>`}
+  </div>${guide("metar")}</div></div>
+
+  <h2 class="step"><b>4</b>대기 구조 — 라디오존데 ${S ? esc(S.name) : ""}</h2>
+  <div class="card">${S ? `<div class="card-h"><h3>${esc(S.name)} (${S.stn}) Skew-T</h3><small>${new Date(S.tm).toISOString().slice(5, 13).replace("T", " ")}Z 관측 · ${timeAgo(S.tm)}</small></div>
+    <div class="prod"><div class="media"><a href="${S.file}${V}" target="_blank"><img src="${S.file}${V}" alt="Skew-T"></a>
+    <div class="idx">${Object.entries(S.idx || {}).map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div></div>${guide("skewt")}</div>`
+    : `<div class="empty">라디오존데 자료가 아직 없어요 (00Z·12Z 관측 후 약 2시간 뒤 들어와요).</div>`}</div>
+
+  <h2 class="step"><b>5</b>모델 비교 — 앞으로 36시간</h2>
+  <div class="card">${M ? `<div class="card-h"><h3>${A.icao} 지점 미티오그램</h3><small>${esc((M.models || []).join(" · "))}</small></div>
+    <div class="prod"><div class="media"><a href="${M.file}${V}" target="_blank"><img src="${M.file}${V}" alt="모델 비교" loading="lazy"></a></div>${guide("model")}</div>`
+    : `<div class="empty">모델 자료를 못 받았어요.</div>`}</div>
+
+  <h2 class="step"><b>6</b>내 TAF 쓰고 → 공식 TAF와 비교</h2>
+  <div class="card"><div style="padding:16px 18px">
+    <textarea id="mytaf" rows="4" placeholder="TAF ${A.icao} ...Z ....../...... " style="width:100%;font:13px ui-monospace,Menlo,monospace;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)"></textarea>
+    <div style="height:10px"></div>
+    ${A.taf ? `<button class="reveal" id="rv">내 TAF 다 썼으면 공식 TAF 열기</button><pre class="metar" id="taf" hidden style="margin-top:12px">${esc(A.taf).replace(/\s(BECMG|TEMPO|FM\d+|PROB\d+)/g, "\n  $1")}</pre>`
+      : `<div class="empty" style="padding:0">${A.icao} 공식 TAF는 국제 배포에 없어요 → <a href="https://amo.kma.go.kr" target="_blank">항공기상청</a>에서 확인.</div>`}
+  </div></div>`;
+  const ta = $("#mytaf"), k = "mytaf:" + A.icao;
+  ta.value = store.get(k) || "";
+  ta.oninput = () => store.set(k, ta.value);
+  const rv = $("#rv");
+  if (rv) rv.onclick = () => { $("#taf").hidden = false; rv.hidden = true; };
+}
+</script>
+</body>
+</html>

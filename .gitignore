@@ -5,3 +5,4 @@ site/today.pdf
 site/charts/
 site/charts.json
 __pycache__/
+site/brief/
