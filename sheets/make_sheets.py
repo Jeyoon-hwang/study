@@ -54,21 +54,28 @@ def page(title, code, hint, body, foot):
 # ---------- 공부 시트 (S1) ----------
 SUBJ = ["대수","Stewart","Boas","Halliday","Ahrens","W&H","Holton","한능검","컴활","토스","강수정","내신","과전","기타"]
 HOURS = [str(h) for h in range(6, 25)]
+# 평일: 수업 끝나고 18:00~23:00만 자유시간 (월·목은 관악부라 18~19시만)
+WEEKDAY_HOURS = [str(h) for h in range(18, 24)]
+WEEKEND_HOURS = [str(h) for h in range(7, 25)]
 MINS = ["00","10","20","30","40","50"]
-def study_block(n):
+def study_block(n, hours=HOURS):
     return f'''<div class="blk"><h3><span>세션 {n}</span><span style="font-weight:500;font-size:6.8pt">안 쓴 세션은 비워두기</span></h3>
 {line("과목", SUBJ)}
 {line("장·강", ("십", ["0","1","2","3","4"]), ("일", D10), "|", ("이 장 끝", ["완료"]), "|", ("종류", ["개념","예제","연습","Review","기출"]))}
-{line("시작", ("시", HOURS), "|", ("분", MINS))}
-{line("끝", ("시", HOURS), "|", ("분", MINS))}
+{line("시작", ("시", hours), "|", ("분", MINS))}
+{line("끝", ("시", hours), "|", ("분", MINS))}
 {line("푼 문제", ("십", D10), "|", ("일", D10))}
 {line("맞은 문제", ("십", D10), "|", ("일", D10))}
 </div>'''
 
-study = page("공부 체크 시트", "S1",
-    "동그라미를 꽉 칠해. 체크·X 표시 말고 칠하기. 잘못 칠하면 크게 X 긋고 옆에 다시 칠해. 시간은 10분 단위로 가까운 쪽.",
-    date_line() + '<div style="height:2mm"></div>' + "".join(study_block(i) for i in range(1, 5)),
-    "S1 · 세션 4개 · 모자라면 2장")
+HINT = "동그라미를 꽉 칠해. 체크·X 표시 말고 칠하기. 잘못 칠하면 크게 X 긋고 옆에 다시 칠해. 시간은 10분 단위로 가까운 쪽."
+study = page("공부 체크 시트 · 평일", "S1",
+    HINT + " 평일은 18~23시만 (월·목은 관악부라 18~19시). 23시 넘으면 끝을 23시 50분까지.",
+    date_line() + '<div style="height:2mm"></div>' + "".join(study_block(i, WEEKDAY_HOURS) for i in range(1, 5)),
+    "S1 평일 · 세션 4개") + page("공부 체크 시트 · 주말", "S1",
+    HINT + " 주말·방학용 (7~24시).",
+    date_line() + '<div style="height:2mm"></div>' + "".join(study_block(i, WEEKEND_HOURS) for i in range(1, 5)),
+    "S1 주말 · 세션 4개 · 모자라면 2장")
 
 # ---------- 기상 시트 (W1) ----------
 STN = ["RKPS 사천","RKPK 김해","RKPC 제주","RKTU 청주","RKSI 인천","RKSS 김포"]
