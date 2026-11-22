@@ -360,6 +360,23 @@ def meteogram(ap):
         "wind_speed_unit": "kn", "timezone": "Asia/Seoul",
     })
     d = json.loads(get(f"https://api.open-meteo.com/v1/forecast?{q}"))["hourly"]
+    # 다중 모델 요청에서 비어 온 모델은 단독으로 다시 요청 (KMA는 kma_seamless로도 시도)
+    for m, _, _ in MODELS:
+        if any(x is not None for x in d.get(f"temperature_2m_{m}", [])):
+            continue
+        for alt in ([m, "kma_seamless"] if m == "kma_ldps" else [m]):
+            try:
+                q1 = urllib.parse.urlencode({"latitude": ap["lat"], "longitude": ap["lon"], "hourly": ",".join(vars_),
+                                             "models": alt, "forecast_hours": 36, "wind_speed_unit": "kn",
+                                             "timezone": "Asia/Seoul"})
+                h1 = json.loads(get(f"https://api.open-meteo.com/v1/forecast?{q1}", tries=1))["hourly"]
+                if any(x is not None for x in h1.get("temperature_2m", [])) and len(h1["time"]) == len(d["time"]):
+                    for v in vars_:
+                        d[f"{v}_{m}"] = h1.get(v)
+                    break
+                print("모델 비어 있음", alt, file=sys.stderr)
+            except Exception as e:  # noqa: BLE001
+                print("모델 재요청 실패", alt, e, file=sys.stderr)
     times = [dt.datetime.fromisoformat(x) for x in d["time"]]
     arr = lambda v, m: np.array([np.nan if x is None else x for x in d.get(f"{v}_{m}", [None] * len(times))], float)  # noqa: E731
     fig, axs = plt.subplots(5, 1, figsize=(9, 10.5), dpi=100, sharex=True,
